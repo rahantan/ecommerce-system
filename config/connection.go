@@ -8,7 +8,6 @@ import (
 )
 
 func (conf *Config) ConnectionDb() *gorm.DB {
-	// dsnd := "root:@tcp(127.0.0.1:3306)/belajar_gorm?charset=utf8mb4&parseTime=True&loc=Local"
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		conf.Database.User,
 		conf.Database.Password,

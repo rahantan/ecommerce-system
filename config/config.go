@@ -19,13 +19,13 @@ type Server struct {
 	Host string
 	Port string
 }
-type JWT struct {
+type Jwt struct {
 	SecretKey string
 }
 type Config struct {
 	Server
 	Database
-	JWT
+	Jwt
 }
 
 func LoadConfig() *Config {
@@ -46,7 +46,7 @@ func LoadConfig() *Config {
 			Host: os.Getenv("SERVER_HOST"),
 			Port: os.Getenv("SERVER_PORT"),
 		},
-		JWT: JWT{
+		Jwt: Jwt{
 			SecretKey: os.Getenv("JWT_SECRET_KEY"),
 		},
 	}
