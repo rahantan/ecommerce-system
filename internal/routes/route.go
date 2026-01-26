@@ -3,6 +3,8 @@ package routes
 import (
 	"ecommerce-system/config"
 	authhandlers "ecommerce-system/internal/handlers/auth"
+	categoryhandlers "ecommerce-system/internal/handlers/categories"
+	producthandlers "ecommerce-system/internal/handlers/products"
 	"ecommerce-system/internal/middlewares"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,22 +13,36 @@ import (
 type Handlers struct {
 	*config.Config
 	authhandlers.AuthHandlers
+	categoryhandlers.CategoryHandlers
+	producthandlers.ProductHandlers
 }
 
-func NewRoute(app *fiber.App, ctrl *Handlers) {
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("hello world")
-	})
+func NewRoute(app *fiber.App, hndlr *Handlers) {
 
 	auth := app.Group("/auth")
-	auth.Post("/login", ctrl.Login)
-	auth.Post("/register", ctrl.Register)
 
-	private := app.Group("/api", middlewares.JwtValidationToken(ctrl.Config.Jwt.SecretKey))
+	auth.Post("/login", hndlr.AuthHandlers.Login)
+	auth.Post("/register", hndlr.AuthHandlers.Register)
 
-	private.Get("/home", func(c *fiber.Ctx) error {
-		return c.SendString("hello private")
-	})
+	public := app.Group("/api")
 
-	private.Delete("/logout", ctrl.Logout)
+	public.Get("/products/:productId", hndlr.ProductHandlers.GetProductById)
+	public.Get("/products", hndlr.ProductHandlers.GetAllProduct)
+
+	public.Get("/categories/:categoryId", hndlr.GetCategoryById)
+	public.Get("/categories", hndlr.GetAllCategory)
+
+	private := app.Group("/api", middlewares.JwtValidationToken(hndlr.Config.Jwt.SecretKey))
+	private.Delete("/logout", hndlr.AuthHandlers.Logout)
+	//ADMIN ENDPOINT
+	admin := private.Group("", middlewares.Authorization(1))
+	admin.Post("/products", hndlr.ProductHandlers.CreateProduct)
+	admin.Put("/products", hndlr.ProductHandlers.UpdateProductById)
+
+	admin.Post("/categories", hndlr.CategoryHandlers.CreateCategory)
+	admin.Put("/categories", hndlr.CategoryHandlers.UpdateCategoryById)
+
+	//CUSTOMER ENDPOINT
+	// customer := private.Group("", middlewares.Authorization(2))
+
 }

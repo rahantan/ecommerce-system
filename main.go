@@ -7,10 +7,16 @@ import (
 
 	"ecommerce-system/internal/exceptions"
 	authhandlers "ecommerce-system/internal/handlers/auth"
+	categoryhandlers "ecommerce-system/internal/handlers/categories"
+	producthandlers "ecommerce-system/internal/handlers/products"
 
+	categoryrepositories "ecommerce-system/internal/repositories/categories"
+	productrepositories "ecommerce-system/internal/repositories/products"
 	userrepositories "ecommerce-system/internal/repositories/users"
 	"ecommerce-system/internal/routes"
 	authservices "ecommerce-system/internal/services/auth"
+	categoryservices "ecommerce-system/internal/services/categories"
+	productservices "ecommerce-system/internal/services/products"
 	userservices "ecommerce-system/internal/services/users"
 	"fmt"
 
@@ -35,15 +41,24 @@ func main() {
 	})
 
 	userRepository := userrepositories.NewUserRepository(connection)
-	userService := userservices.NewUserService(userRepository)
+	productRepository := productrepositories.NewProductRepository(connection)
+	categoryRepository := categoryrepositories.NewCategoryRepository(connection)
 
+	userService := userservices.NewUserService(userRepository)
 	authService := authservices.NewAuthService(userService)
+	productService := productservices.NewProductService(productRepository)
+	categoryService := categoryservices.NewCategoryService(categoryRepository)
 
 	authHandler := authhandlers.NewAuthController(authService, validate, config)
 
+	productHandler := producthandlers.NewProductHandler(productService, validate)
+	categoryHandler := categoryhandlers.NewCategoryHandler(categoryService, validate)
+
 	ctrl := &routes.Handlers{
-		Config:       config,
-		AuthHandlers: authHandler,
+		Config:           config,
+		AuthHandlers:     authHandler,
+		CategoryHandlers: categoryHandler,
+		ProductHandlers:  productHandler,
 	}
 	routes.NewRoute(app, ctrl)
 	if err := app.Listen(fmt.Sprintf("%s:%s",

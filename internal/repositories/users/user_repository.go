@@ -50,12 +50,15 @@ func (userRepo *UserRepositoryImpl) GetAllUser() ([]*models.UserModel, error) {
 }
 
 func (userRepo *UserRepositoryImpl) CreateUser(user *models.UserModel) (*models.UserModel, error) {
-	result := userRepo.DB.Create(user)
-	if result.Error != nil {
-		if exceptions.IsDuplicateKeyError(result.Error) {
+
+	if err := userRepo.DB.Create(user).Error; err != nil {
+
+		if exceptions.IsDuplicateKeyError(err) {
 			return nil, exceptions.ErrDuplicateEmail
 		}
-		return nil, result.Error
+		if containErr := exceptions.CheckContainError(err); containErr {
+			return nil, exceptions.ErrRoleNotFound
+		}
 	}
 
 	return userRepo.GetUserByEmail(user.Email)

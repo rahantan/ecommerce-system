@@ -2,8 +2,8 @@ package models
 
 import "time"
 
-type User struct {
-}
+// type User struct {
+// }
 type UserModel struct {
 	ID        int64      `gorm:"column:id;primaryKey;autoIncrement"`
 	Name      string     `gorm:"column:name"`

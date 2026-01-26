@@ -7,7 +7,6 @@ import (
 	"ecommerce-system/internal/exceptions"
 	authservices "ecommerce-system/internal/services/auth"
 	"ecommerce-system/internal/utils"
-	"fmt"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -43,25 +42,24 @@ func (auth *AuthHandlerImpl) Login(ctx *fiber.Ctx) error {
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return exceptions.ErrCustomInvalidPayload
+		return exceptions.ErrCustomInvalidPayload.WithMessage(exceptions.MsgFailLogin)
 	}
 
 	err = auth.Validate.Struct(&body)
-	fmt.Println("")
-	if err != nil {
 
-		return err
+	if err != nil {
+		return utils.UpdateMessageErr(err, exceptions.MsgFailLogin)
 	}
 
 	result, err := auth.AuthServices.Login(&body)
 
 	if err != nil {
-		return err
+		return utils.UpdateMessageErr(err, exceptions.MsgFailLogin)
 	}
 
 	token, err := utils.GetToken(*result, auth.Config.Jwt.SecretKey)
 	if err != nil {
-		return err
+		return utils.UpdateMessageErr(err, exceptions.MsgFailLogin)
 	}
 
 	ctx.Cookie(&fiber.Cookie{
@@ -85,17 +83,17 @@ func (auth *AuthHandlerImpl) Register(ctx *fiber.Ctx) error {
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return exceptions.ErrCustomInvalidPayload
+		return exceptions.ErrCustomInvalidPayload.WithMessage(exceptions.MsgFailRegister)
 	}
 
 	err = auth.Validate.Struct(&body)
 	if err != nil {
-		return err
+		return utils.UpdateMessageErr(err, exceptions.MsgFailRegister)
 	}
 
 	result, err := auth.AuthServices.Register(&body)
 	if err != nil {
-		return err
+		return utils.UpdateMessageErr(err, exceptions.MsgFailRegister)
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(response.ResponseStandard{
