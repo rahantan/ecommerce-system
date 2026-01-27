@@ -27,7 +27,7 @@ func (user *UserServiceImpl) Create(request *request.ReqCreateUser) (*response.R
 		Phone:    request.Phone,
 		RoleID:   request.RoleID,
 	})
-	if errCheck := exceptions.CheckError(err, "failed create user"); errCheck != nil {
+	if errCheck := exceptions.CheckError(err); errCheck != nil {
 		return nil, errCheck
 	}
 	return user.loadUserRes(result), nil
@@ -35,7 +35,7 @@ func (user *UserServiceImpl) Create(request *request.ReqCreateUser) (*response.R
 
 func (user *UserServiceImpl) GetUserByEmail(email string) (*response.ResUser, error) {
 	result, err := user.UserRepositories.GetUserByEmail(email)
-	if errCheck := exceptions.CheckError(err, "failed get user"); errCheck != nil {
+	if errCheck := exceptions.CheckError(err); errCheck != nil {
 		return nil, errCheck
 	}
 	return user.loadUserRes(result), nil
@@ -44,16 +44,16 @@ func (user *UserServiceImpl) GetUserByEmail(email string) (*response.ResUser, er
 func (user *UserServiceImpl) GetUserPasswordByEmail(email string) (string, error) {
 	password, err := user.UserRepositories.GetUserPasswordByEmail(email)
 
-	if errCheck := exceptions.CheckError(err, "failed get user password"); errCheck != nil {
+	if errCheck := exceptions.CheckError(err); errCheck != nil {
 		return "", errCheck
 	}
 
 	return password, nil
 }
 func (user *UserServiceImpl) loadUserRes(userMdl *models.UserModel) *response.ResUser {
-	addresses := []response.Address{}
+	addresses := []response.ResAddress{}
 	for _, address := range userMdl.Address {
-		addresses = append(addresses, response.Address{
+		addresses = append(addresses, response.ResAddress{
 			ID:      address.ID,
 			City:    address.City,
 			Address: address.Address,
@@ -65,7 +65,7 @@ func (user *UserServiceImpl) loadUserRes(userMdl *models.UserModel) *response.Re
 		Name:  userMdl.Name,
 		Email: userMdl.Email,
 		Phone: userMdl.Phone,
-		Role: response.Role{
+		Role: response.ResRole{
 			ID:    userMdl.Role.ID,
 			Title: userMdl.Role.Title,
 		},

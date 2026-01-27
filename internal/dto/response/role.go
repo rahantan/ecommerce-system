@@ -1,6 +1,6 @@
 package response
 
-type Role struct {
+type ResRole struct {
 	ID    int64  `json:"id"`
 	Title string `json:"title"`
 }

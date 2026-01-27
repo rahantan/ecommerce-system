@@ -42,17 +42,15 @@ func (auth *AuthHandlerImpl) Login(ctx *fiber.Ctx) error {
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return exceptions.ErrCustomInvalidPayload.WithMessage(exceptions.MsgFailLogin)
+		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidPayload, exceptions.MsgFailLogin)
 	}
 
 	err = auth.Validate.Struct(&body)
-
 	if err != nil {
 		return utils.UpdateMessageErr(err, exceptions.MsgFailLogin)
 	}
 
 	result, err := auth.AuthServices.Login(&body)
-
 	if err != nil {
 		return utils.UpdateMessageErr(err, exceptions.MsgFailLogin)
 	}
@@ -83,7 +81,7 @@ func (auth *AuthHandlerImpl) Register(ctx *fiber.Ctx) error {
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return exceptions.ErrCustomInvalidPayload.WithMessage(exceptions.MsgFailRegister)
+		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidPayload, exceptions.MsgFailRegister)
 	}
 
 	err = auth.Validate.Struct(&body)

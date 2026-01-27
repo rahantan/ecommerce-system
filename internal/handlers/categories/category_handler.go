@@ -41,7 +41,7 @@ func (categoryHandler *CategoryHandlerImpl) CreateCategory(ctx *fiber.Ctx) error
 		return utils.UpdateMessageErr(err, exceptions.MsgFailCreateCategory)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
+	return ctx.Status(fiber.StatusCreated).JSON(response.ResponseStandard{
 		Success: true,
 		Message: "success create category",
 		Data: map[string]any{
@@ -67,7 +67,7 @@ func (categoryHandler *CategoryHandlerImpl) UpdateCategoryById(ctx *fiber.Ctx) e
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return exceptions.ErrCustomInvalidPayload.WithMessage(exceptions.MsgFailUpdateCategory)
+		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidPayload, exceptions.MsgFailUpdateCategory)
 	}
 
 	err = categoryHandler.Validate.Struct(&body)
@@ -77,7 +77,7 @@ func (categoryHandler *CategoryHandlerImpl) UpdateCategoryById(ctx *fiber.Ctx) e
 
 	result, err := categoryHandler.CategoryServices.UpdateCategory(&body)
 	if err != nil {
-		return err
+		return utils.UpdateMessageErr(err, exceptions.MsgFailUpdateCategory)
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
@@ -91,12 +91,14 @@ func (categoryHandler *CategoryHandlerImpl) UpdateCategoryById(ctx *fiber.Ctx) e
 func (categoryHandler *CategoryHandlerImpl) GetCategoryById(ctx *fiber.Ctx) error {
 	paramCategId, err := strconv.Atoi(ctx.Params("categoryId"))
 	if err != nil {
-		return exceptions.ErrCustomInvalidCategoryId.WithMessage(exceptions.MsgFailGetCategory)
+		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidCategoryId, exceptions.MsgFailGetCategory)
 	}
+
 	result, err := categoryHandler.CategoryServices.GetCategoryById(int64(paramCategId))
 	if err != nil {
 		return utils.UpdateMessageErr(err, exceptions.MsgFailGetCategory)
 	}
+
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
 		Success: true,
 		Message: "success get category",

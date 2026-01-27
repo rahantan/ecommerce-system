@@ -1,8 +1,13 @@
 package models
 
-type Address struct {
-	ID      int64  `gorm:"column:id;pribrayKey;autoIncrement"`
-	UserID  string `gorm:"column:user_id"`
-	City    string `gorm:"column:city"`
-	Address string `gorm:"column:address"`
+type AddressModel struct {
+	ID       int64  `gorm:"column:id;primaryKey;autoIncrement"`
+	UserID   int64  `gorm:"column:user_id"`
+	City     string `gorm:"column:city"`
+	IsActive bool   `gorm:"column:is_active"`
+	Address  string `gorm:"column:address"`
+}
+
+func (a *AddressModel) TableName() string {
+	return "addresses"
 }

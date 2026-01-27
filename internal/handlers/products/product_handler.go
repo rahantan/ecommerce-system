@@ -6,7 +6,6 @@ import (
 	"ecommerce-system/internal/exceptions"
 	productservices "ecommerce-system/internal/services/products"
 	"ecommerce-system/internal/utils"
-	"fmt"
 
 	"strconv"
 
@@ -26,12 +25,12 @@ func NewProductHandler(product productservices.ProductServices, v *validator.Val
 	}
 }
 func (productHandler *ProductHandlerImpl) CreateProduct(ctx *fiber.Ctx) error {
-	fmt.Println("4")
+
 	var body request.ReqCreateProduct
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return exceptions.ErrCustomInvalidPayload.WithMessage(exceptions.MsgFailCreateProduct)
+		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidPayload, exceptions.MsgFailCreateProduct)
 	}
 
 	err = productHandler.Validate.Struct(&body)
@@ -41,11 +40,10 @@ func (productHandler *ProductHandlerImpl) CreateProduct(ctx *fiber.Ctx) error {
 
 	result, err := productHandler.ProductServices.CreateProduct(&body)
 	if err != nil {
-
 		return utils.UpdateMessageErr(err, exceptions.MsgFailCreateProduct)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
+	return ctx.Status(fiber.StatusCreated).JSON(response.ResponseStandard{
 		Success: true,
 		Message: "success create product",
 		Data: map[string]any{
@@ -96,9 +94,10 @@ func (productHandler *ProductHandlerImpl) UpdateProductById(ctx *fiber.Ctx) erro
 	})
 }
 func (productHandler *ProductHandlerImpl) GetProductById(ctx *fiber.Ctx) error {
+
 	paramProductId, err := strconv.Atoi(ctx.Params("productId"))
 	if err != nil {
-		return exceptions.ErrCustomInvalidProductId.WithMessage(exceptions.MsgFailGetProduct)
+		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidProductId, exceptions.MsgFailGetProduct)
 	}
 
 	result, err := productHandler.ProductServices.GetProductById(int64(paramProductId))

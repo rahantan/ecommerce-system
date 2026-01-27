@@ -10,32 +10,32 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-func getNewMsg(messages ...string) string {
-	msg := ""
-	for _, msgVal := range messages {
-		msg += " " + msgVal
-	}
-	return msg
-}
+// func getNewMsg(messages ...string) string {
+// 	msg := ""
+// 	for _, msgVal := range messages {
+// 		msg += " " + msgVal
+// 	}
+// 	return msg
+// }
 
 // Check Error Service Layer
-func CheckError(err error, msg ...string) error {
+func CheckError(err error) error {
 	if err == nil {
 		return nil
 	}
 	switch {
 	case errors.Is(err, ErrUserNotFound):
-		return ErrCustomUserNotFound.WithMessage(getNewMsg(msg...))
+		return ErrCustomUserNotFound
 	case errors.Is(err, ErrDuplicateEmail):
-		return ErrCustomEmailAlreadyExist.WithMessage(getNewMsg(msg...))
-	case errors.Is(err, ErrDuplicateEmail):
-		return ErrCustomEmailAlreadyExist.WithMessage(getNewMsg(msg...))
+		return ErrCustomEmailAlreadyExist
 	case errors.Is(err, ErrCategoryNotFound):
-		return ErrCustomCategoryNotFound.WithMessage(getNewMsg(msg...))
+		return ErrCustomCategoryNotFound
 	case errors.Is(err, ErrProductNotFound):
-		return ErrCustomProductNotFound.WithMessage(getNewMsg(msg...))
+		return ErrCustomProductNotFound
 	case errors.Is(err, ErrRoleNotFound):
 		return ErrCustomRoleNotFound
+	case errors.Is(err, ErrAddressNotFound):
+		return ErrCustomAddressNotFound
 	default:
 		return NewError(DefaultMsgInternalErr, err.Error(), http.StatusInternalServerError)
 	}
