@@ -1,9 +1,7 @@
 package productrepositories
 
 import (
-	"ecommerce-system/internal/exceptions"
 	"ecommerce-system/internal/models"
-	"errors"
 
 	"gorm.io/gorm"
 )
@@ -18,44 +16,65 @@ func NewProductRepository(db *gorm.DB) ProductRepositories {
 	}
 }
 
-func (productRepo *ProductRepositoryImpl) GetProductById(id int64) (*models.ProductModel, error) {
-	var product models.ProductModel
-	err := productRepo.DB.Preload("Category").Where("id=?", id).Take(&product).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, exceptions.ErrProductNotFound
-		}
-		return nil, err
+func (productRepo *ProductRepositoryImpl) checkErrMysql(err error) error {
+	if models.IsInternalErrMysql(err) {
+		return err
 	}
+	if models.ForeignKeyErr(err) {
+		return models.ErrCategoryNotFound
+	}
+	return models.ErrProductNotFound
+}
+func (productRepo *ProductRepositoryImpl) checkProductNotFoundForUpdate(productID int64) bool {
+	var count int64
+
+	if err := productRepo.DB.Model(&models.ProductModel{}).Where("id=?", productID).Count(&count).Error; err != nil {
+		return false
+	}
+
+	return count == 0
+}
+
+func (productRepo *ProductRepositoryImpl) GetProductById(productID int64) (*models.ProductModel, error) {
+	var product models.ProductModel
+
+	if err := productRepo.DB.Preload("Category").Where("id=?", productID).Take(&product).Error; err != nil {
+		return nil, productRepo.checkErrMysql(err)
+	}
+
 	return &product, nil
 }
+
 func (productRepo *ProductRepositoryImpl) CreateProduct(product *models.ProductModel) (*models.ProductModel, error) {
-
 	if err := productRepo.DB.Create(product).Error; err != nil {
-		if containErr := exceptions.CheckContainError(err); containErr {
-			return nil, exceptions.ErrCategoryNotFound
-		}
-		return nil, err
+		return nil, productRepo.checkErrMysql(err)
 	}
-
 	return productRepo.GetProductById(product.ID)
 }
+
 func (productRepo *ProductRepositoryImpl) UpdateProductById(product *models.ProductModel) (*models.ProductModel, error) {
-	result := productRepo.DB.Model(&models.ProductModel{}).Updates(product)
-	if result.Error != nil {
-		return nil, result.Error
+
+	if productRepo.checkProductNotFoundForUpdate(product.ID) {
+		return nil, models.ErrProductNotFound
 	}
+
+	result := productRepo.DB.Model(&models.ProductModel{}).Where("id=?", product.ID).Updates(product)
+	if err := result.Error; err != nil {
+		return nil, productRepo.checkErrMysql(err)
+	}
+
 	if result.RowsAffected < 1 {
-		return nil, exceptions.ErrNoRowsAffected
+		return nil, models.ErrNoRowsAffected
 	}
+
 	return productRepo.GetProductById(product.ID)
 }
 
 func (productRepo *ProductRepositoryImpl) GetAllProduct() ([]*models.ProductModel, error) {
 	var products []*models.ProductModel
-	err := productRepo.DB.Preload("Category").Find(&products).Error
-	if err != nil {
-		return nil, err
+
+	if err := productRepo.DB.Preload("Category").Find(&products).Error; err != nil {
+		return nil, productRepo.checkErrMysql(err)
 	}
 	return products, nil
 }

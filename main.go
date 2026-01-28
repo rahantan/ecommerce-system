@@ -50,7 +50,7 @@ func main() {
 	addressRepository := addressrepositories.NewAddressRepository(connection)
 
 	userService := userservices.NewUserService(userRepository)
-	addressService := addressservices.NewAddresyService(addressRepository)
+	addressService := addressservices.NewAddressService(addressRepository)
 	authService := authservices.NewAuthService(userService)
 	productService := productservices.NewProductService(productRepository)
 	categoryService := categoryservices.NewCategoryService(categoryRepository)

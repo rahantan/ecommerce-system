@@ -12,10 +12,14 @@ type AddressServiceImpl struct {
 	addressrepositories.AddressRepositories
 }
 
-func NewAddresyService(address addressrepositories.AddressRepositories) AddressServices {
+func NewAddressService(address addressrepositories.AddressRepositories) AddressServices {
 	return &AddressServiceImpl{
 		AddressRepositories: address,
 	}
+}
+
+func (addressService *AddressServiceImpl) handleError(err error) error {
+	return exceptions.CheckError(err)
 }
 
 func (addressService *AddressServiceImpl) loadAddress(address *models.AddressModel) *response.ResAddress {
@@ -27,14 +31,14 @@ func (addressService *AddressServiceImpl) loadAddress(address *models.AddressMod
 }
 func (addressService *AddressServiceImpl) GetUserActiveAddress(userId int64) (*response.ResAddress, error) {
 	result, err := addressService.AddressRepositories.GetUserActiveAddress(userId)
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := addressService.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 	return addressService.loadAddress(result), nil
 }
 func (addressService *AddressServiceImpl) GetAllAddress(userId int64) ([]*response.ResAddress, error) {
 	result, err := addressService.AddressRepositories.GetAllAddress(userId)
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := addressService.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 
@@ -51,9 +55,9 @@ func (addressService *AddressServiceImpl) CreateAddress(request *request.ReqCrea
 		UserID:   request.UserID,
 		City:     request.City,
 		Address:  request.Address,
-		IsActive: request.IsActive,
+		IsActive: *request.IsActive,
 	})
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := addressService.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 	return addressService.loadAddress(result), nil
@@ -65,10 +69,19 @@ func (addressService *AddressServiceImpl) UpdateAddressByUserId(request *request
 		UserID:   request.UserID,
 		City:     request.City,
 		Address:  request.Address,
-		IsActive: request.IsActive,
+		IsActive: *request.IsActive,
 	})
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := addressService.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 	return addressService.loadAddress(result), nil
+}
+func (addressService *AddressServiceImpl) ActivateAddress(addressID int64, userID int64) error {
+
+	err := addressService.AddressRepositories.ActivateAddress(addressID, userID)
+	if errCheck := addressService.handleError(err); errCheck != nil {
+		return errCheck
+	}
+
+	return nil
 }

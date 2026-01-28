@@ -17,19 +17,16 @@ func responseErrCustom(ctx *fiber.Ctx, err *ErrorCustom) error {
 }
 
 func ErrorHandler(ctx *fiber.Ctx, err error) error {
-	if validationErr := ValidationError(err); validationErr != nil {
-		return responseErrCustom(ctx, validationErr)
-	}
 
-	errCustom := err.(*ErrorCustom)
-	if errCustom.StatusCode != http.StatusInternalServerError {
+	errCustom, ok := err.(*ErrorCustom)
+	if ok && errCustom.StatusCode != http.StatusInternalServerError {
 		return responseErrCustom(ctx, errCustom)
 	}
 
-	fmt.Println("error unexpected: ", errCustom.Errors)
-	return ctx.Status(errCustom.StatusCode).JSON(response.ResponseStandard{
+	fmt.Println("error unexpected: ", err.Error())
+	return ctx.Status(fiber.StatusInternalServerError).JSON(response.ResponseStandard{
 		Success: false,
-		Message: errCustom.Message,
+		Message: "internal server error",
 	})
 
 }

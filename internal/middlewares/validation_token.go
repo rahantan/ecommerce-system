@@ -24,7 +24,10 @@ func JwtValidationToken(secretKey string) fiber.Handler {
 			return []byte(secretKey), nil
 		})
 
-		if err != nil || !token.Valid {
+		if err != nil {
+			return err
+		}
+		if !token.Valid {
 			return errors.New("invalid parse token")
 		}
 		ctx.Locals("user", claims.ResUser)

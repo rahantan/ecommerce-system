@@ -1,9 +1,7 @@
 package categoryrepositories
 
 import (
-	"ecommerce-system/internal/exceptions"
 	"ecommerce-system/internal/models"
-	"errors"
 
 	"gorm.io/gorm"
 )
@@ -17,39 +15,62 @@ func NewCategoryRepository(db *gorm.DB) CategoryRepositories {
 		DB: db,
 	}
 }
-func (categoryrepo *CategoryRepositoryImpl) GetCategoryById(id int64) (*models.CategoryModel, error) {
-	var category models.CategoryModel
-	err := categoryrepo.DB.Where("id=?", id).Take(&category).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, exceptions.ErrCategoryNotFound
-		}
-		return nil, err
+
+func (categoryRepo *CategoryRepositoryImpl) checkErrMysql(err error) error {
+	if models.IsInternalErrMysql(err) {
+		return err
 	}
+	return models.ErrCategoryNotFound
+}
+
+func (categoryRepo *CategoryRepositoryImpl) checkNotFoundForUpdate(categoryID int64) bool {
+
+	var count int64
+	if err := categoryRepo.DB.Model(&models.CategoryModel{}).Where("id = ?", categoryID).Count(&count).Error; err != nil {
+		return false
+	}
+	return count == 0
+}
+
+func (categoryRepo *CategoryRepositoryImpl) GetCategoryById(categoryID int64) (*models.CategoryModel, error) {
+	var category models.CategoryModel
+
+	if err := categoryRepo.DB.Where("id=?", categoryID).Take(&category).Error; err != nil {
+		return nil, categoryRepo.checkErrMysql(err)
+	}
+
 	return &category, nil
 }
-func (categoryrepo *CategoryRepositoryImpl) GetAllCategory() ([]*models.CategoryModel, error) {
+
+func (categoryRepo *CategoryRepositoryImpl) GetAllCategory() ([]*models.CategoryModel, error) {
+
 	var categories []*models.CategoryModel
-	err := categoryrepo.DB.Find(&categories).Error
-	if err != nil {
-		return nil, err
+	if err := categoryRepo.DB.Find(&categories).Error; err != nil {
+		return nil, categoryRepo.checkErrMysql(err)
 	}
+
 	return categories, nil
 }
-func (categoryrepo *CategoryRepositoryImpl) UpdateCategoryById(category *models.CategoryModel) (*models.CategoryModel, error) {
-	result := categoryrepo.DB.Model(&models.CategoryModel{}).Where("id=?", category.ID).Updates(category)
+
+func (categoryRepo *CategoryRepositoryImpl) UpdateCategoryById(category *models.CategoryModel) (*models.CategoryModel, error) {
+
+	if categoryRepo.checkNotFoundForUpdate(category.ID) {
+		return nil, models.ErrCategoryNotFound
+	}
+
+	result := categoryRepo.DB.Model(&models.CategoryModel{}).Where("id=?", category.ID).Updates(category)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, categoryRepo.checkErrMysql(result.Error)
 	}
-	if result.RowsAffected < 1 {
-		return nil, exceptions.ErrNoRowsAffected
-	}
-	return categoryrepo.GetCategoryById(category.ID)
+	return categoryRepo.GetCategoryById(category.ID)
 }
-func (categoryrepo *CategoryRepositoryImpl) CreateCategory(category *models.CategoryModel) (*models.CategoryModel, error) {
-	err := categoryrepo.DB.Create(category).Error
+
+func (categoryRepo *CategoryRepositoryImpl) CreateCategory(category *models.CategoryModel) (*models.CategoryModel, error) {
+
+	err := categoryRepo.DB.Create(category).Error
 	if err != nil {
-		return nil, err
+		return nil, categoryRepo.checkErrMysql(err)
 	}
-	return categoryrepo.GetCategoryById(category.ID)
+
+	return categoryRepo.GetCategoryById(category.ID)
 }

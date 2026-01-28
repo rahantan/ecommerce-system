@@ -1,13 +1,13 @@
 package exceptions
 
 import (
+	"ecommerce-system/internal/models"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/go-sql-driver/mysql"
 )
 
 // func getNewMsg(messages ...string) string {
@@ -24,20 +24,20 @@ func CheckError(err error) error {
 		return nil
 	}
 	switch {
-	case errors.Is(err, ErrUserNotFound):
+	case errors.Is(err, models.ErrUserNotFound):
 		return ErrCustomUserNotFound
-	case errors.Is(err, ErrDuplicateEmail):
+	case errors.Is(err, models.ErrDuplicateEmail):
 		return ErrCustomEmailAlreadyExist
-	case errors.Is(err, ErrCategoryNotFound):
+	case errors.Is(err, models.ErrCategoryNotFound):
 		return ErrCustomCategoryNotFound
-	case errors.Is(err, ErrProductNotFound):
+	case errors.Is(err, models.ErrProductNotFound):
 		return ErrCustomProductNotFound
-	case errors.Is(err, ErrRoleNotFound):
+	case errors.Is(err, models.ErrRoleNotFound):
 		return ErrCustomRoleNotFound
-	case errors.Is(err, ErrAddressNotFound):
+	case errors.Is(err, models.ErrAddressNotFound):
 		return ErrCustomAddressNotFound
 	default:
-		return NewError(DefaultMsgInternalErr, err.Error(), http.StatusInternalServerError)
+		return err
 	}
 }
 func ValidationError(err error) *ErrorCustom {
@@ -62,21 +62,4 @@ func ValidationError(err error) *ErrorCustom {
 		return NewError(DefaultMsgValidationError, errDetail, http.StatusUnprocessableEntity)
 	}
 	return nil
-}
-
-func IsDuplicateKeyError(err error) bool {
-	var mysqlErr *mysql.MySQLError
-
-	if errors.As(err, &mysqlErr) {
-		return mysqlErr.Number == 1062
-	}
-
-	return false
-}
-
-func CheckContainError(err error) bool {
-	if strings.Contains(err.Error(), "Error 1452") {
-		return true
-	}
-	return false
 }

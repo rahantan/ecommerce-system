@@ -17,7 +17,9 @@ func NewUserService(user userrepositories.UserRepositories) UserService {
 		UserRepositories: user,
 	}
 }
-
+func (user *UserServiceImpl) handleError(err error) error {
+	return exceptions.CheckError(err)
+}
 func (user *UserServiceImpl) Create(request *request.ReqCreateUser) (*response.ResUser, error) {
 
 	result, err := user.UserRepositories.CreateUser(&models.UserModel{
@@ -27,7 +29,7 @@ func (user *UserServiceImpl) Create(request *request.ReqCreateUser) (*response.R
 		Phone:    request.Phone,
 		RoleID:   request.RoleID,
 	})
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := user.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 	return user.loadUserRes(result), nil
@@ -35,7 +37,7 @@ func (user *UserServiceImpl) Create(request *request.ReqCreateUser) (*response.R
 
 func (user *UserServiceImpl) GetUserByEmail(email string) (*response.ResUser, error) {
 	result, err := user.UserRepositories.GetUserByEmail(email)
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := user.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 	return user.loadUserRes(result), nil
@@ -44,7 +46,7 @@ func (user *UserServiceImpl) GetUserByEmail(email string) (*response.ResUser, er
 func (user *UserServiceImpl) GetUserPasswordByEmail(email string) (string, error) {
 	password, err := user.UserRepositories.GetUserPasswordByEmail(email)
 
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := user.handleError(err); errCheck != nil {
 		return "", errCheck
 	}
 

@@ -27,6 +27,10 @@ func NewAuthController(auth authservices.AuthServices, v *validator.Validate, c 
 	}
 }
 
+func (auth *AuthHandlerImpl) withMessage(err error, msg string) error {
+	return utils.WithMessage(err, msg)
+}
+
 func (auth *AuthHandlerImpl) Logout(ctx *fiber.Ctx) error {
 	ctx.Cookie(&fiber.Cookie{
 		Name:   "token",
@@ -39,25 +43,24 @@ func (auth *AuthHandlerImpl) Logout(ctx *fiber.Ctx) error {
 }
 func (auth *AuthHandlerImpl) Login(ctx *fiber.Ctx) error {
 	var body request.ReqLogin
-
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidPayload, exceptions.MsgFailLogin)
+		return auth.withMessage(exceptions.ErrCustomInvalidPayload, "failed to login")
 	}
 
 	err = auth.Validate.Struct(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailLogin)
+		return auth.withMessage(exceptions.ValidationError(err), "failed to login")
 	}
 
 	result, err := auth.AuthServices.Login(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailLogin)
+		return auth.withMessage(err, "failed to login")
 	}
 
 	token, err := utils.GetToken(*result, auth.Config.Jwt.SecretKey)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailLogin)
+		return auth.withMessage(err, "failed to login")
 	}
 
 	ctx.Cookie(&fiber.Cookie{
@@ -78,20 +81,19 @@ func (auth *AuthHandlerImpl) Login(ctx *fiber.Ctx) error {
 }
 func (auth *AuthHandlerImpl) Register(ctx *fiber.Ctx) error {
 	var body request.ReqCreateUser
-
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidPayload, exceptions.MsgFailRegister)
+		return auth.withMessage(exceptions.ErrCustomInvalidPayload, "failed to register")
 	}
 
 	err = auth.Validate.Struct(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailRegister)
+		return auth.withMessage(exceptions.ValidationError(err), "failed to register")
 	}
 
 	result, err := auth.AuthServices.Register(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailRegister)
+		return auth.withMessage(err, "failed to register")
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(response.ResponseStandard{

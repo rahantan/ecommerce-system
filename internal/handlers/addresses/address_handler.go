@@ -23,6 +23,10 @@ func NewAddressHandler(address addressservices.AddressServices, v *validator.Val
 		Validate:        v,
 	}
 }
+
+func (addressHandler *AddressHandlerImpl) withMessage(err error, msg string) error {
+	return utils.WithMessage(err, msg)
+}
 func (addressHandler *AddressHandlerImpl) CreateAddress(ctx *fiber.Ctx) error {
 	var body request.ReqCreateAddress
 
@@ -31,17 +35,17 @@ func (addressHandler *AddressHandlerImpl) CreateAddress(ctx *fiber.Ctx) error {
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidPayload, exceptions.MsgFailCreateAddress)
+		return addressHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to create address")
 	}
 
 	err = addressHandler.Validate.Struct(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailCreateAddress)
+		return addressHandler.withMessage(exceptions.ValidationError(err), "failed to create address")
 	}
 
 	result, err := addressHandler.AddressServices.CreateAddress(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailCreateAddress)
+		return addressHandler.withMessage(err, "failed to create address")
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(response.ResponseStandard{
@@ -58,7 +62,7 @@ func (addressHandler *AddressHandlerImpl) GetAllAddress(ctx *fiber.Ctx) error {
 
 	result, err := addressHandler.AddressServices.GetAllAddress(user.ID)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailGetAllAddresses)
+		return addressHandler.withMessage(err, "failed to get addresses")
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
@@ -75,12 +79,12 @@ func (addressHandler *AddressHandlerImpl) UpdateAddressByUserId(ctx *fiber.Ctx) 
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidPayload, exceptions.MsgFailUpdateAddress)
+		return addressHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to update address")
 	}
 
 	addressId, err := strconv.Atoi(ctx.Params("addressId"))
 	if err != nil {
-		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidAddressId, exceptions.MsgFailUpdateAddress)
+		return addressHandler.withMessage(exceptions.ErrCustomInvalidAddressId, "failed to update address")
 	}
 
 	user := ctx.Locals("user").(response.ResUser)
@@ -89,12 +93,12 @@ func (addressHandler *AddressHandlerImpl) UpdateAddressByUserId(ctx *fiber.Ctx) 
 
 	err = addressHandler.Validate.Struct(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailUpdateAddress)
+		return addressHandler.withMessage(exceptions.ValidationError(err), "failed to update address")
 	}
 
 	result, err := addressHandler.AddressServices.UpdateAddressByUserId(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailUpdateAddress)
+		return addressHandler.withMessage(err, "failed to update address")
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
@@ -110,7 +114,7 @@ func (addressHandler *AddressHandlerImpl) GetUserActiveAddress(ctx *fiber.Ctx) e
 
 	result, err := addressHandler.AddressServices.GetUserActiveAddress(user.ID)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailGetAddress)
+		return addressHandler.withMessage(err, "failed to get address")
 	}
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
 		Success: true,
@@ -118,5 +122,21 @@ func (addressHandler *AddressHandlerImpl) GetUserActiveAddress(ctx *fiber.Ctx) e
 		Data: map[string]any{
 			"address": result,
 		},
+	})
+}
+func (addressHandler *AddressHandlerImpl) ActivateAddress(ctx *fiber.Ctx) error {
+	user := ctx.Locals("user").(response.ResUser)
+	addressId, err := strconv.Atoi(ctx.Params("addressId"))
+	if err != nil {
+		return addressHandler.withMessage(exceptions.ErrCustomInvalidAddressId, "failed to activate address")
+	}
+
+	err = addressHandler.AddressServices.ActivateAddress(int64(addressId), user.ID)
+	if err != nil {
+		return addressHandler.withMessage(err, "failed to activate address")
+	}
+	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
+		Success: true,
+		Message: "success activate address",
 	})
 }

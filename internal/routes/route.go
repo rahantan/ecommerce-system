@@ -58,5 +58,6 @@ func NewRoute(app *fiber.App, handler *Handlers) {
 	customer.Get("/addresses/active", handler.AddressHandlers.GetUserActiveAddress)
 	customer.Get("/addresses", handler.AddressHandlers.GetAllAddress)
 	customer.Post("/addresses", handler.AddressHandlers.CreateAddress)
+	customer.Patch("/addresses/:addressId/activate", handler.AddressHandlers.ActivateAddress)
 	customer.Put("/addresses/:addressId", handler.AddressHandlers.UpdateAddressByUserId)
 }

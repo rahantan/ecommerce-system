@@ -17,6 +17,9 @@ func NewProductService(product productrepositories.ProductRepositories) ProductS
 		ProductRepositories: product,
 	}
 }
+func (productService *ProductServiceImpl) handleError(err error) error {
+	return exceptions.CheckError(err)
+}
 func (product *ProductServiceImpl) loadProduct(productLoad *models.ProductModel) *response.ResProduct {
 	return &response.ResProduct{
 		ID:        productLoad.ID,
@@ -33,14 +36,14 @@ func (product *ProductServiceImpl) loadProduct(productLoad *models.ProductModel)
 }
 func (productService *ProductServiceImpl) GetProductById(id int64) (*response.ResProduct, error) {
 	result, err := productService.ProductRepositories.GetProductById(id)
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := productService.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 	return productService.loadProduct(result), nil
 }
 func (productService *ProductServiceImpl) GetAllProduct() ([]*response.ResProduct, error) {
 	result, err := productService.ProductRepositories.GetAllProduct()
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := productService.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 
@@ -61,7 +64,7 @@ func (productService *ProductServiceImpl) CreateProduct(request *request.ReqCrea
 		CategoryID: request.CategoryId,
 	})
 
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := productService.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 
@@ -69,12 +72,13 @@ func (productService *ProductServiceImpl) CreateProduct(request *request.ReqCrea
 }
 func (productService *ProductServiceImpl) UpdateProduct(request *request.ReqUpdateProduct) (*response.ResProduct, error) {
 	result, err := productService.ProductRepositories.UpdateProductById(&models.ProductModel{
+		ID:         request.ID,
 		Name:       request.Name,
 		Price:      request.Price,
 		Stock:      request.Stock,
 		CategoryID: request.CategoryId,
 	})
-	if errCheck := exceptions.CheckError(err); errCheck != nil {
+	if errCheck := productService.handleError(err); errCheck != nil {
 		return nil, errCheck
 	}
 	return productService.loadProduct(result), nil

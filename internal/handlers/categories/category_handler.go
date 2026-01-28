@@ -23,22 +23,26 @@ func NewCategoryHandler(category categoryservices.CategoryServices, v *validator
 		Validate:         v,
 	}
 }
+
+func (categoryHandler *CategoryHandlerImpl) withMessage(err error, msg string) error {
+	return utils.WithMessage(err, msg)
+}
 func (categoryHandler *CategoryHandlerImpl) CreateCategory(ctx *fiber.Ctx) error {
 	var body request.ReqCreateCategory
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return exceptions.ErrCustomInvalidPayload.WithMessage(exceptions.MsgFailCreateCategory)
+		return categoryHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to create category")
 	}
 
 	err = categoryHandler.Validate.Struct(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailCreateCategory)
+		return categoryHandler.withMessage(exceptions.ValidationError(err), "failed to create category")
 	}
 
 	result, err := categoryHandler.CategoryServices.CreateCategory(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailCreateCategory)
+		return categoryHandler.withMessage(err, "failed to create category")
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(response.ResponseStandard{
@@ -52,7 +56,7 @@ func (categoryHandler *CategoryHandlerImpl) CreateCategory(ctx *fiber.Ctx) error
 func (categoryHandler *CategoryHandlerImpl) GetAllCategory(ctx *fiber.Ctx) error {
 	result, err := categoryHandler.CategoryServices.GetAllCategory()
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailGetAllCategory)
+		return categoryHandler.withMessage(err, "failed to get categories")
 	}
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
 		Success: true,
@@ -67,17 +71,17 @@ func (categoryHandler *CategoryHandlerImpl) UpdateCategoryById(ctx *fiber.Ctx) e
 
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidPayload, exceptions.MsgFailUpdateCategory)
+		return categoryHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to update category")
 	}
 
 	err = categoryHandler.Validate.Struct(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailUpdateCategory)
+		return categoryHandler.withMessage(exceptions.ValidationError(err), "failed to update category")
 	}
 
 	result, err := categoryHandler.CategoryServices.UpdateCategory(&body)
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailUpdateCategory)
+		return categoryHandler.withMessage(err, "failed to update category")
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
@@ -91,12 +95,12 @@ func (categoryHandler *CategoryHandlerImpl) UpdateCategoryById(ctx *fiber.Ctx) e
 func (categoryHandler *CategoryHandlerImpl) GetCategoryById(ctx *fiber.Ctx) error {
 	paramCategId, err := strconv.Atoi(ctx.Params("categoryId"))
 	if err != nil {
-		return utils.UpdateMessageErr(exceptions.ErrCustomInvalidCategoryId, exceptions.MsgFailGetCategory)
+		return categoryHandler.withMessage(exceptions.ErrCustomInvalidCategoryId, "failed to get category")
 	}
 
 	result, err := categoryHandler.CategoryServices.GetCategoryById(int64(paramCategId))
 	if err != nil {
-		return utils.UpdateMessageErr(err, exceptions.MsgFailGetCategory)
+		return categoryHandler.withMessage(err, "failed to get category")
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
