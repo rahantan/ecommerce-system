@@ -53,7 +53,7 @@ func (userRepo *UserRepositoryImpl) GetAllUser() ([]*models.UserModel, error) {
 	var users []*models.UserModel
 
 	if err := userRepo.DB.Find(&users).Error; err != nil {
-		return nil, userRepo.checkErrMysql(err)
+		return nil, err
 	}
 
 	return users, nil

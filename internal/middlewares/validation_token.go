@@ -25,7 +25,7 @@ func JwtValidationToken(secretKey string) fiber.Handler {
 		})
 
 		if err != nil {
-			return err
+			return exceptions.ErrCustomInvalidToken
 		}
 		if !token.Valid {
 			return errors.New("invalid parse token")

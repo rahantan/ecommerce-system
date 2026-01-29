@@ -7,5 +7,5 @@ type AddressHandlers interface {
 	GetAllAddress(ctx *fiber.Ctx) error
 	UpdateAddressByUserId(ctx *fiber.Ctx) error
 	GetUserActiveAddress(ctx *fiber.Ctx) error
-	ActivateAddress(ctx *fiber.Ctx) error
+	// ActivateAddress(ctx *fiber.Ctx) error
 }

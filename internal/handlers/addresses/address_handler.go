@@ -124,19 +124,20 @@ func (addressHandler *AddressHandlerImpl) GetUserActiveAddress(ctx *fiber.Ctx) e
 		},
 	})
 }
-func (addressHandler *AddressHandlerImpl) ActivateAddress(ctx *fiber.Ctx) error {
-	user := ctx.Locals("user").(response.ResUser)
-	addressId, err := strconv.Atoi(ctx.Params("addressId"))
-	if err != nil {
-		return addressHandler.withMessage(exceptions.ErrCustomInvalidAddressId, "failed to activate address")
-	}
 
-	err = addressHandler.AddressServices.ActivateAddress(int64(addressId), user.ID)
-	if err != nil {
-		return addressHandler.withMessage(err, "failed to activate address")
-	}
-	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
-		Success: true,
-		Message: "success activate address",
-	})
-}
+// func (addressHandler *AddressHandlerImpl) ActivateAddress(ctx *fiber.Ctx) error {
+// 	user := ctx.Locals("user").(response.ResUser)
+// 	addressId, err := strconv.Atoi(ctx.Params("addressId"))
+// 	if err != nil {
+// 		return addressHandler.withMessage(exceptions.ErrCustomInvalidAddressId, "failed to activate address")
+// 	}
+
+// 	err = addressHandler.AddressServices.ActivateAddress(int64(addressId), user.ID)
+// 	if err != nil {
+// 		return addressHandler.withMessage(err, "failed to activate address")
+// 	}
+// 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
+// 		Success: true,
+// 		Message: "success activate address",
+// 	})
+// }

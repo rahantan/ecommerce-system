@@ -46,7 +46,7 @@ func (categoryRepo *CategoryRepositoryImpl) GetAllCategory() ([]*models.Category
 
 	var categories []*models.CategoryModel
 	if err := categoryRepo.DB.Find(&categories).Error; err != nil {
-		return nil, categoryRepo.checkErrMysql(err)
+		return nil, err
 	}
 
 	return categories, nil

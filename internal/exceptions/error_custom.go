@@ -47,10 +47,11 @@ var (
 	ErrCustomInvalidCategoryId = NewError(DefaultMsgValidationError, "invalid category id", http.StatusUnprocessableEntity)
 	ErrCustomInvalidAddressId  = NewError(DefaultMsgValidationError, "invalid address id", http.StatusUnprocessableEntity)
 	ErrCustomInvalidProductId  = NewError(DefaultMsgValidationError, "invalid product id", http.StatusUnprocessableEntity)
+	ErrCustomInvalidCartId     = NewError(DefaultMsgValidationError, "invalid cart id", http.StatusUnprocessableEntity)
 
 	ErrCustomUnauthorized      = NewError(DefaultMsgUnauthorized, "authentication required", http.StatusUnauthorized)
 	ErrCustomTokenEmpty        = NewError(DefaultMsgUnauthorized, "token is required", http.StatusUnauthorized)
-	ErrCustomInvalidToken      = NewError(DefaultMsgUnauthorized, "invalid token", http.StatusUnauthorized)
+	ErrCustomInvalidToken      = NewError(DefaultMsgUnauthorized, "invalid token or expired", http.StatusUnauthorized)
 	ErrCustomInvalidCredential = NewError(DefaultMsgUnauthorized, "invalid email or password", http.StatusUnauthorized)
 
 	ErrCustomForbidden = NewError(DefaultMsgForbidden, "access to this resource is denied", http.StatusForbidden)

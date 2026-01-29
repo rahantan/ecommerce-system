@@ -34,27 +34,20 @@ func (addressRepo *AddressRepositoryImpl) checkNotFoundForUpdate(addressID int64
 	return count == 0
 }
 
-func (addressRepo *AddressRepositoryImpl) deActivate(userID int64) error {
-	return addressRepo.DB.Model(&models.AddressModel{UserID: userID}).Update("is_activate=", false).Error
-}
-
-// END PRIVATE
-
-func (addressRepo *AddressRepositoryImpl) ActivateAddress(addressID int64, userID int64) error {
-	if err := addressRepo.deActivate(userID); err != nil {
-		return addressRepo.checkErrMysql(err)
+func (addressRepo *AddressRepositoryImpl) deActivate(tx *gorm.DB, userID int64) error {
+	result := tx.Model(&models.AddressModel{}).Where("user_id=?", userID).Update("is_active", false)
+	if result.Error != nil {
+		return addressRepo.checkErrMysql(result.Error)
 	}
 
-	if addressRepo.checkNotFoundForUpdate(addressID) {
-		return models.ErrAddressNotFound
-	}
-
-	if err := addressRepo.DB.Model(&models.AddressModel{ID: addressID, UserID: userID}).Update("is_activate=", true).Error; err != nil {
-		return err
+	if result.RowsAffected == 0 {
+		return nil
 	}
 
 	return nil
 }
+
+// END PRIVATE
 
 func (addressRepo *AddressRepositoryImpl) GetUserActiveAddress(userId int64) (*models.AddressModel, error) {
 	var address models.AddressModel
@@ -68,8 +61,7 @@ func (addressRepo *AddressRepositoryImpl) GetUserActiveAddress(userId int64) (*m
 func (addressRepo *AddressRepositoryImpl) GetAddressById(addressId int64) (*models.AddressModel, error) {
 	var address models.AddressModel
 
-	err := addressRepo.DB.Where("id=?", addressId).Take(&address).Error
-	if err != nil {
+	if err := addressRepo.DB.Where("id=?", addressId).Take(&address).Error; err != nil {
 		return nil, addressRepo.checkErrMysql(err)
 	}
 
@@ -85,18 +77,34 @@ func (addressRepo *AddressRepositoryImpl) GetAllAddress(userId int64) ([]*models
 	return addresss, nil
 }
 func (addressRepo *AddressRepositoryImpl) UpdateAddressByUserId(address *models.AddressModel) (*models.AddressModel, error) {
-
+	// Check if address exists first
 	if addressRepo.checkNotFoundForUpdate(address.ID) {
 		return nil, models.ErrAddressNotFound
 	}
 
-	result := addressRepo.DB.Model(&models.AddressModel{}).Where("id = ? AND user_id = ?", address.ID, address.UserID).Updates(address)
-	if result.Error != nil {
-		return nil, addressRepo.checkErrMysql(result.Error)
-	}
+	// Use transaction for consistent state
+	err := addressRepo.Transaction(func(tx *gorm.DB) error {
 
-	if result.RowsAffected < 1 {
-		return nil, models.ErrNoRowsAffected
+		if address.IsActive {
+			if err := addressRepo.deActivate(tx, address.ID); err != nil {
+				return addressRepo.checkErrMysql(err)
+			}
+		}
+
+		result := tx.Model(&models.AddressModel{}).Where("id = ? AND user_id = ?", address.ID, address.UserID).Updates(address)
+		if result.Error != nil {
+			return addressRepo.checkErrMysql(result.Error)
+		}
+
+		if result.RowsAffected < 1 {
+			return models.ErrNoRowsAffected
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return addressRepo.GetAddressById(address.ID)
@@ -104,9 +112,38 @@ func (addressRepo *AddressRepositoryImpl) UpdateAddressByUserId(address *models.
 
 func (addressRepo *AddressRepositoryImpl) CreateAddress(address *models.AddressModel) (*models.AddressModel, error) {
 
-	if err := addressRepo.DB.Create(address).Error; err != nil {
-		return nil, addressRepo.checkErrMysql(err)
+	err := addressRepo.Transaction(func(tx *gorm.DB) error {
+		if address.IsActive {
+			if err := addressRepo.deActivate(tx, address.ID); err != nil {
+				return addressRepo.checkErrMysql(err)
+			}
+		}
+		if err := tx.Create(address).Error; err != nil {
+			return addressRepo.checkErrMysql(err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return addressRepo.GetAddressById(address.ID)
 }
+
+// func (addressRepo *AddressRepositoryImpl) ActivateAddress(addressID int64, userID int64) error {
+// 	if err := addressRepo.deActivate(userID); err != nil {
+// 		return addressRepo.checkErrMysql(err)
+// 	}
+
+// 	if addressRepo.checkNotFoundForUpdate(addressID) {
+// 		return models.ErrAddressNotFound
+// 	}
+
+// 	if err := addressRepo.DB.Model(&models.AddressModel{ID: addressID, UserID: userID}).Update("is_activate=", true).Error; err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }

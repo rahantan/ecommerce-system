@@ -73,7 +73,11 @@ func (categoryHandler *CategoryHandlerImpl) UpdateCategoryById(ctx *fiber.Ctx) e
 	if err != nil {
 		return categoryHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to update category")
 	}
-
+	categoryId, err := strconv.Atoi(ctx.Params("productId"))
+	if err != nil {
+		return categoryHandler.withMessage(exceptions.ErrCustomInvalidCategoryId, "failed to update address")
+	}
+	body.ID = int64(categoryId)
 	err = categoryHandler.Validate.Struct(&body)
 	if err != nil {
 		return categoryHandler.withMessage(exceptions.ValidationError(err), "failed to update category")

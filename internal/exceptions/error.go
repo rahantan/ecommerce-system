@@ -36,6 +36,8 @@ func CheckError(err error) error {
 		return ErrCustomRoleNotFound
 	case errors.Is(err, models.ErrAddressNotFound):
 		return ErrCustomAddressNotFound
+	case errors.Is(err, models.ErrCartItemNotFound):
+		return NewError("", "not found cart item", http.StatusFound)
 	default:
 		return err
 	}
@@ -57,6 +59,8 @@ func ValidationError(err error) *ErrorCustom {
 				errDetail[validate.Field()] = strings.ToLower(fmt.Sprintf("%s doesn't match", validate.Field()))
 			case "numeric":
 				errDetail[validate.Field()] = strings.ToLower(fmt.Sprintf("%s must be number", validate.Field()))
+			case "gt":
+				errDetail[validate.Field()] = strings.ToLower(fmt.Sprintf("%s must be at least 1", validate.Field()))
 			}
 		}
 		return NewError(DefaultMsgValidationError, errDetail, http.StatusUnprocessableEntity)

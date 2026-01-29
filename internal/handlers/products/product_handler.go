@@ -6,7 +6,6 @@ import (
 	"ecommerce-system/internal/exceptions"
 	productservices "ecommerce-system/internal/services/products"
 	"ecommerce-system/internal/utils"
-	"fmt"
 
 	"strconv"
 
@@ -81,7 +80,11 @@ func (productHandler *ProductHandlerImpl) UpdateProductById(ctx *fiber.Ctx) erro
 		return productHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to update product")
 	}
 
-	fmt.Println(body.ID)
+	productId, err := strconv.Atoi(ctx.Params("productId"))
+	if err != nil {
+		return productHandler.withMessage(exceptions.ErrCustomInvalidProductId, "failed to update address")
+	}
+	body.ID = int64(productId)
 	err = productHandler.Validate.Struct(&body)
 	if err != nil {
 		return productHandler.withMessage(exceptions.ValidationError(err), "failed to update product")

@@ -13,6 +13,7 @@ var (
 
 	ErrProductNotFound  = errors.New("product not found")
 	ErrCategoryNotFound = errors.New("category not found")
+	ErrCartItemNotFound = errors.New("cart item not found")
 	ErrRoleNotFound     = errors.New("role not found")
 	ErrAddressNotFound  = errors.New("address not found")
 )

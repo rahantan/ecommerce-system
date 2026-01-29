@@ -4,6 +4,7 @@ import (
 	"ecommerce-system/config"
 	addresshandlers "ecommerce-system/internal/handlers/addresses"
 	authhandlers "ecommerce-system/internal/handlers/auth"
+	carthandlers "ecommerce-system/internal/handlers/carts"
 	categoryhandlers "ecommerce-system/internal/handlers/categories"
 	producthandlers "ecommerce-system/internal/handlers/products"
 	"ecommerce-system/internal/middlewares"
@@ -18,6 +19,7 @@ type Handlers struct {
 	categoryhandlers.CategoryHandlers
 	producthandlers.ProductHandlers
 	addresshandlers.AddressHandlers
+	carthandlers.CartItemHandlers
 }
 
 func NewRoute(app *fiber.App, handler *Handlers) {
@@ -48,16 +50,21 @@ func NewRoute(app *fiber.App, handler *Handlers) {
 	// ADMIN
 	admin := private.Group("/admin", middlewares.Authorization(1))
 	admin.Post("/products", handler.ProductHandlers.CreateProduct)
-	admin.Put("/products", handler.ProductHandlers.UpdateProductById)
+	admin.Put("/products/:productId", handler.ProductHandlers.UpdateProductById)
 
 	admin.Post("/categories", handler.CategoryHandlers.CreateCategory)
-	admin.Put("/categories", handler.CategoryHandlers.UpdateCategoryById)
+	admin.Put("/categories/:categoryId", handler.CategoryHandlers.UpdateCategoryById)
 
 	// CUSTOMER
 	customer := private.Group("/customers", middlewares.Authorization(2))
+
 	customer.Get("/addresses/active", handler.AddressHandlers.GetUserActiveAddress)
 	customer.Get("/addresses", handler.AddressHandlers.GetAllAddress)
 	customer.Post("/addresses", handler.AddressHandlers.CreateAddress)
-	customer.Patch("/addresses/:addressId/activate", handler.AddressHandlers.ActivateAddress)
 	customer.Put("/addresses/:addressId", handler.AddressHandlers.UpdateAddressByUserId)
+
+	customer.Post("/carts", handler.CartItemHandlers.AddCartItem)
+	customer.Get("/carts", handler.CartItemHandlers.GetAllUserCartItem)
+	customer.Delete("/carts/:cartId", handler.CartItemHandlers.DeleteCartItemById)
+
 }

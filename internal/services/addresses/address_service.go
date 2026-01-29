@@ -24,9 +24,10 @@ func (addressService *AddressServiceImpl) handleError(err error) error {
 
 func (addressService *AddressServiceImpl) loadAddress(address *models.AddressModel) *response.ResAddress {
 	return &response.ResAddress{
-		ID:      address.ID,
-		City:    address.City,
-		Address: address.Address,
+		ID:       address.ID,
+		City:     address.City,
+		Address:  address.Address,
+		IsActive: address.IsActive,
 	}
 }
 func (addressService *AddressServiceImpl) GetUserActiveAddress(userId int64) (*response.ResAddress, error) {
@@ -76,12 +77,13 @@ func (addressService *AddressServiceImpl) UpdateAddressByUserId(request *request
 	}
 	return addressService.loadAddress(result), nil
 }
-func (addressService *AddressServiceImpl) ActivateAddress(addressID int64, userID int64) error {
 
-	err := addressService.AddressRepositories.ActivateAddress(addressID, userID)
-	if errCheck := addressService.handleError(err); errCheck != nil {
-		return errCheck
-	}
+// func (addressService *AddressServiceImpl) ActivateAddress(addressID int64, userID int64) error {
 
-	return nil
-}
+// 	err := addressService.AddressRepositories.ActivateAddress(addressID, userID)
+// 	if errCheck := addressService.handleError(err); errCheck != nil {
+// 		return errCheck
+// 	}
+
+// 	return nil
+// }

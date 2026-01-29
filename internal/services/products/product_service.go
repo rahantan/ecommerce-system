@@ -28,7 +28,7 @@ func (product *ProductServiceImpl) loadProduct(productLoad *models.ProductModel)
 		Stock:     productLoad.Stock,
 		CreatedAt: productLoad.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt: productLoad.UpdatedAt.Format("2006-01-02 15:04:05"),
-		ResCategory: response.ResCategory{
+		ResCategory: &response.ResCategory{
 			ID:   productLoad.Category.ID,
 			Name: productLoad.Category.Name,
 		},

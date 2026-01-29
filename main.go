@@ -8,16 +8,19 @@ import (
 	"ecommerce-system/internal/exceptions"
 	addresshandlers "ecommerce-system/internal/handlers/addresses"
 	authhandlers "ecommerce-system/internal/handlers/auth"
+	carthandlers "ecommerce-system/internal/handlers/carts"
 	categoryhandlers "ecommerce-system/internal/handlers/categories"
 	producthandlers "ecommerce-system/internal/handlers/products"
 
 	addressrepositories "ecommerce-system/internal/repositories/addresses"
+	cartitemrepositories "ecommerce-system/internal/repositories/carts"
 	categoryrepositories "ecommerce-system/internal/repositories/categories"
 	productrepositories "ecommerce-system/internal/repositories/products"
 	userrepositories "ecommerce-system/internal/repositories/users"
 	"ecommerce-system/internal/routes"
 	addressservices "ecommerce-system/internal/services/addresses"
 	authservices "ecommerce-system/internal/services/auth"
+	cartitemsservices "ecommerce-system/internal/services/carts"
 	categoryservices "ecommerce-system/internal/services/categories"
 	productservices "ecommerce-system/internal/services/products"
 	userservices "ecommerce-system/internal/services/users"
@@ -48,17 +51,20 @@ func main() {
 	productRepository := productrepositories.NewProductRepository(connection)
 	categoryRepository := categoryrepositories.NewCategoryRepository(connection)
 	addressRepository := addressrepositories.NewAddressRepository(connection)
+	cartRepository := cartitemrepositories.NewCartItemRepository()
 
 	userService := userservices.NewUserService(userRepository)
 	addressService := addressservices.NewAddressService(addressRepository)
 	authService := authservices.NewAuthService(userService)
 	productService := productservices.NewProductService(productRepository)
 	categoryService := categoryservices.NewCategoryService(categoryRepository)
+	cartService := cartitemsservices.NewCartItemService(connection, cartRepository, productService)
 
 	authHandler := authhandlers.NewAuthController(authService, validate, config)
 	addressHandler := addresshandlers.NewAddressHandler(addressService, validate)
 	productHandler := producthandlers.NewProductHandler(productService, validate)
 	categoryHandler := categoryhandlers.NewCategoryHandler(categoryService, validate)
+	cartHandler := carthandlers.NewCartItemHandler(cartService, validate)
 
 	ctrl := &routes.Handlers{
 		Config:           config,
@@ -66,6 +72,7 @@ func main() {
 		CategoryHandlers: categoryHandler,
 		ProductHandlers:  productHandler,
 		AddressHandlers:  addressHandler,
+		CartItemHandlers: cartHandler,
 	}
 	routes.NewRoute(app, ctrl)
 	if err := app.Listen(fmt.Sprintf("%s:%s",

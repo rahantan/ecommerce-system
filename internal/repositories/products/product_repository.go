@@ -74,7 +74,7 @@ func (productRepo *ProductRepositoryImpl) GetAllProduct() ([]*models.ProductMode
 	var products []*models.ProductModel
 
 	if err := productRepo.DB.Preload("Category").Find(&products).Error; err != nil {
-		return nil, productRepo.checkErrMysql(err)
+		return nil, err
 	}
 	return products, nil
 }
