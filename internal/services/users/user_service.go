@@ -6,53 +6,24 @@ import (
 	"ecommerce-system/internal/exceptions"
 	"ecommerce-system/internal/models"
 	userrepositories "ecommerce-system/internal/repositories/users"
+	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type UserServiceImpl struct {
 	userrepositories.UserRepositories
+	*gorm.DB
 }
 
-func NewUserService(user userrepositories.UserRepositories) UserService {
+func NewUserService(user userrepositories.UserRepositories, db *gorm.DB) UserServices {
 	return &UserServiceImpl{
 		UserRepositories: user,
+		DB:               db,
 	}
 }
-func (user *UserServiceImpl) handleError(err error) error {
-	return exceptions.CheckError(err)
-}
-func (user *UserServiceImpl) Create(request *request.ReqCreateUser) (*response.ResUser, error) {
-
-	result, err := user.UserRepositories.CreateUser(&models.UserModel{
-		Name:     request.Name,
-		Email:    request.Email,
-		Password: request.Password,
-		Phone:    request.Phone,
-		RoleID:   request.RoleID,
-	})
-	if errCheck := user.handleError(err); errCheck != nil {
-		return nil, errCheck
-	}
-	return user.loadUserRes(result), nil
-}
-
-func (user *UserServiceImpl) GetUserByEmail(email string) (*response.ResUser, error) {
-	result, err := user.UserRepositories.GetUserByEmail(email)
-	if errCheck := user.handleError(err); errCheck != nil {
-		return nil, errCheck
-	}
-	return user.loadUserRes(result), nil
-}
-
-func (user *UserServiceImpl) GetUserPasswordByEmail(email string) (string, error) {
-	password, err := user.UserRepositories.GetUserPasswordByEmail(email)
-
-	if errCheck := user.handleError(err); errCheck != nil {
-		return "", errCheck
-	}
-
-	return password, nil
-}
-func (user *UserServiceImpl) loadUserRes(userMdl *models.UserModel) *response.ResUser {
+func (userService *UserServiceImpl) loadUserRes(userMdl *models.UserModel) *response.ResUser {
 	addresses := []response.ResAddress{}
 	for _, address := range userMdl.Address {
 		addresses = append(addresses, response.ResAddress{
@@ -75,4 +46,39 @@ func (user *UserServiceImpl) loadUserRes(userMdl *models.UserModel) *response.Re
 		CreatedAt: userMdl.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt: userMdl.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}
+}
+func (userService *UserServiceImpl) handleError(err error) error {
+	return exceptions.CheckError(err)
+}
+
+func (userService *UserServiceImpl) Login(req *request.ReqLogin) (*response.ResUser, error) {
+	user, err := userService.UserRepositories.GetUserByEmail(userService.DB, req.Email)
+	if err != nil {
+		return nil, exceptions.NewError(exceptions.DefaultMsgUnauthorized, "invalid email or password", http.StatusUnauthorized)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		return nil, exceptions.NewError(exceptions.DefaultMsgUnauthorized, "invalid email or password", http.StatusUnauthorized)
+	}
+
+	return userService.loadUserRes(user), nil
+}
+func (userService *UserServiceImpl) Register(request *request.ReqCreateUser) (*response.ResUser, error) {
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	request.Password = string(hash)
+	result, err := userService.UserRepositories.CreateUser(userService.DB, &models.UserModel{
+		Name:     request.Name,
+		Email:    request.Email,
+		Password: request.Password,
+		Phone:    request.Phone,
+		RoleID:   request.RoleID,
+	})
+	if err != nil {
+		return nil, userService.handleError(err)
+	}
+	return userService.loadUserRes(result), nil
 }

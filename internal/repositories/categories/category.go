@@ -23,54 +23,54 @@ func (categoryRepo *CategoryRepositoryImpl) checkErrMysql(err error) error {
 	return models.ErrCategoryNotFound
 }
 
-func (categoryRepo *CategoryRepositoryImpl) checkNotFoundForUpdate(categoryID int64) bool {
+func (categoryRepo *CategoryRepositoryImpl) checkNotFoundForUpdate(db *gorm.DB, categoryID int64) bool {
 
 	var count int64
-	if err := categoryRepo.DB.Model(&models.CategoryModel{}).Where("id = ?", categoryID).Count(&count).Error; err != nil {
+	if err := db.Model(&models.CategoryModel{}).Where("id = ?", categoryID).Count(&count).Error; err != nil {
 		return false
 	}
 	return count == 0
 }
 
-func (categoryRepo *CategoryRepositoryImpl) GetCategoryById(categoryID int64) (*models.CategoryModel, error) {
+func (categoryRepo *CategoryRepositoryImpl) GetCategoryById(db *gorm.DB, categoryID int64) (*models.CategoryModel, error) {
 	var category models.CategoryModel
 
-	if err := categoryRepo.DB.Where("id=?", categoryID).Take(&category).Error; err != nil {
+	if err := db.Where("id=?", categoryID).Take(&category).Error; err != nil {
 		return nil, categoryRepo.checkErrMysql(err)
 	}
 
 	return &category, nil
 }
 
-func (categoryRepo *CategoryRepositoryImpl) GetAllCategory() ([]*models.CategoryModel, error) {
+func (categoryRepo *CategoryRepositoryImpl) GetAllCategory(db *gorm.DB) ([]*models.CategoryModel, error) {
 
 	var categories []*models.CategoryModel
-	if err := categoryRepo.DB.Find(&categories).Error; err != nil {
+	if err := db.Find(&categories).Error; err != nil {
 		return nil, err
 	}
 
 	return categories, nil
 }
 
-func (categoryRepo *CategoryRepositoryImpl) UpdateCategoryById(category *models.CategoryModel) (*models.CategoryModel, error) {
+func (categoryRepo *CategoryRepositoryImpl) UpdateCategoryById(db *gorm.DB, category *models.CategoryModel) (*models.CategoryModel, error) {
 
-	if categoryRepo.checkNotFoundForUpdate(category.ID) {
+	if categoryRepo.checkNotFoundForUpdate(db, category.ID) {
 		return nil, models.ErrCategoryNotFound
 	}
 
-	result := categoryRepo.DB.Model(&models.CategoryModel{}).Where("id=?", category.ID).Updates(category)
+	result := db.Model(&models.CategoryModel{}).Where("id=?", category.ID).Updates(category)
 	if result.Error != nil {
 		return nil, categoryRepo.checkErrMysql(result.Error)
 	}
-	return categoryRepo.GetCategoryById(category.ID)
+	return categoryRepo.GetCategoryById(db, category.ID)
 }
 
-func (categoryRepo *CategoryRepositoryImpl) CreateCategory(category *models.CategoryModel) (*models.CategoryModel, error) {
+func (categoryRepo *CategoryRepositoryImpl) CreateCategory(db *gorm.DB, category *models.CategoryModel) (*models.CategoryModel, error) {
 
-	err := categoryRepo.DB.Create(category).Error
+	err := db.Create(category).Error
 	if err != nil {
 		return nil, categoryRepo.checkErrMysql(err)
 	}
 
-	return categoryRepo.GetCategoryById(category.ID)
+	return categoryRepo.GetCategoryById(db, category.ID)
 }

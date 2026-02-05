@@ -5,7 +5,7 @@ import (
 	"ecommerce-system/internal/dto/request"
 	"ecommerce-system/internal/dto/response"
 	"ecommerce-system/internal/exceptions"
-	authservices "ecommerce-system/internal/services/auth"
+	userservices "ecommerce-system/internal/services/users"
 	"ecommerce-system/internal/utils"
 	"time"
 
@@ -14,14 +14,15 @@ import (
 )
 
 type AuthHandlerImpl struct {
-	authservices.AuthServices
+	// authservices.AuthServices
+	userservices.UserServices
 	*validator.Validate
 	*config.Config
 }
 
-func NewAuthController(auth authservices.AuthServices, v *validator.Validate, c *config.Config) AuthHandlers {
+func NewAuthController(user userservices.UserServices, v *validator.Validate, c *config.Config) AuthHandlers {
 	return &AuthHandlerImpl{
-		AuthServices: auth,
+		UserServices: user,
 		Validate:     v,
 		Config:       c,
 	}
@@ -53,7 +54,7 @@ func (auth *AuthHandlerImpl) Login(ctx *fiber.Ctx) error {
 		return auth.withMessage(exceptions.ValidationError(err), "failed to login")
 	}
 
-	result, err := auth.AuthServices.Login(&body)
+	result, err := auth.UserServices.Login(&body)
 	if err != nil {
 		return auth.withMessage(err, "failed to login")
 	}
@@ -91,7 +92,7 @@ func (auth *AuthHandlerImpl) Register(ctx *fiber.Ctx) error {
 		return auth.withMessage(exceptions.ValidationError(err), "failed to register")
 	}
 
-	result, err := auth.AuthServices.Register(&body)
+	result, err := auth.UserServices.Register(&body)
 	if err != nil {
 		return auth.withMessage(err, "failed to register")
 	}

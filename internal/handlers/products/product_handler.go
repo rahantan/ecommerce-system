@@ -29,6 +29,43 @@ func (productHandler *ProductHandlerImpl) withMessage(err error, msg string) err
 	return utils.WithMessage(err, msg)
 }
 
+func (productHandler *ProductHandlerImpl) GetAllProduct(ctx *fiber.Ctx) error {
+
+	result, err := productHandler.ProductServices.GetAllProduct()
+	if err != nil {
+		return productHandler.withMessage(err, "failed to get products")
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
+		Success: true,
+		Message: "success get product",
+		Data: map[string]any{
+			"products": result,
+		},
+	})
+}
+
+func (productHandler *ProductHandlerImpl) GetProductById(ctx *fiber.Ctx) error {
+
+	paramProductId, err := strconv.Atoi(ctx.Params("productId"))
+	if err != nil {
+		return productHandler.withMessage(exceptions.ErrCustomInvalidProductId, "failed to get product")
+	}
+
+	result, err := productHandler.ProductServices.GetProductById(int64(paramProductId))
+	if err != nil {
+		return productHandler.withMessage(err, "failed to get product")
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
+		Success: true,
+		Message: "success get product",
+		Data: map[string]any{
+			"product": result,
+		},
+	})
+}
+
 func (productHandler *ProductHandlerImpl) CreateProduct(ctx *fiber.Ctx) error {
 
 	var body request.ReqCreateProduct
@@ -57,21 +94,6 @@ func (productHandler *ProductHandlerImpl) CreateProduct(ctx *fiber.Ctx) error {
 	})
 
 }
-func (productHandler *ProductHandlerImpl) GetAllProduct(ctx *fiber.Ctx) error {
-
-	result, err := productHandler.ProductServices.GetAllProduct()
-	if err != nil {
-		return productHandler.withMessage(err, "failed to get products")
-	}
-
-	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
-		Success: true,
-		Message: "success get product",
-		Data: map[string]any{
-			"products": result,
-		},
-	})
-}
 func (productHandler *ProductHandlerImpl) UpdateProductById(ctx *fiber.Ctx) error {
 	var body request.ReqUpdateProduct
 
@@ -84,13 +106,12 @@ func (productHandler *ProductHandlerImpl) UpdateProductById(ctx *fiber.Ctx) erro
 	if err != nil {
 		return productHandler.withMessage(exceptions.ErrCustomInvalidProductId, "failed to update address")
 	}
-	body.ID = int64(productId)
-	err = productHandler.Validate.Struct(&body)
-	if err != nil {
+
+	if err = productHandler.Validate.Struct(&body); err != nil {
 		return productHandler.withMessage(exceptions.ValidationError(err), "failed to update product")
 	}
 
-	result, err := productHandler.ProductServices.UpdateProduct(&body)
+	result, err := productHandler.ProductServices.UpdateProductById(&body, int64(productId))
 	if err != nil {
 		return productHandler.withMessage(err, "failed to update product")
 	}
@@ -98,26 +119,6 @@ func (productHandler *ProductHandlerImpl) UpdateProductById(ctx *fiber.Ctx) erro
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
 		Success: true,
 		Message: "success update product",
-		Data: map[string]any{
-			"product": result,
-		},
-	})
-}
-func (productHandler *ProductHandlerImpl) GetProductById(ctx *fiber.Ctx) error {
-
-	paramProductId, err := strconv.Atoi(ctx.Params("productId"))
-	if err != nil {
-		return productHandler.withMessage(exceptions.ErrCustomInvalidProductId, "failed to get product")
-	}
-
-	result, err := productHandler.ProductServices.GetProductById(int64(paramProductId))
-	if err != nil {
-		return productHandler.withMessage(err, "failed to get product")
-	}
-
-	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
-		Success: true,
-		Message: "success get product",
 		Data: map[string]any{
 			"product": result,
 		},

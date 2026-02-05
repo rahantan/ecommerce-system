@@ -12,3 +12,5 @@ github.com/golang-jwt/jwt/v5
 golang.org/x/crypto/bcrypt
 
 github.com/go-playground/validator/v10
+
+go get -u github.com/midtrans/midtrans-go

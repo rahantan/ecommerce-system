@@ -8,7 +8,7 @@ import (
 
 var (
 	ErrUserNotFound   = errors.New("user not found")
-	ErrDuplicateEmail = errors.New("duplicate email")
+	ErrDuplicateEmail = errors.New("email already exist")
 	ErrNoRowsAffected = errors.New("no rows affected")
 
 	ErrProductNotFound  = errors.New("product not found")
@@ -16,6 +16,7 @@ var (
 	ErrCartItemNotFound = errors.New("cart item not found")
 	ErrRoleNotFound     = errors.New("role not found")
 	ErrAddressNotFound  = errors.New("address not found")
+	ErrCheckOutNotFound = errors.New("checkout not found")
 )
 
 func getMysqlErr(err error, mysqlCode uint16) bool {

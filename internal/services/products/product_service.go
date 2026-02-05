@@ -6,15 +6,19 @@ import (
 	"ecommerce-system/internal/exceptions"
 	"ecommerce-system/internal/models"
 	productrepositories "ecommerce-system/internal/repositories/products"
+
+	"gorm.io/gorm"
 )
 
 type ProductServiceImpl struct {
 	productrepositories.ProductRepositories
+	*gorm.DB
 }
 
-func NewProductService(product productrepositories.ProductRepositories) ProductServices {
+func NewProductService(product productrepositories.ProductRepositories, db *gorm.DB) ProductServices {
 	return &ProductServiceImpl{
 		ProductRepositories: product,
+		DB:                  db,
 	}
 }
 func (productService *ProductServiceImpl) handleError(err error) error {
@@ -34,17 +38,18 @@ func (product *ProductServiceImpl) loadProduct(productLoad *models.ProductModel)
 		},
 	}
 }
-func (productService *ProductServiceImpl) GetProductById(id int64) (*response.ResProduct, error) {
-	result, err := productService.ProductRepositories.GetProductById(id)
-	if errCheck := productService.handleError(err); errCheck != nil {
-		return nil, errCheck
+func (productService *ProductServiceImpl) GetProductById(productID int64) (*response.ResProduct, error) {
+	result, err := productService.ProductRepositories.GetProductById(productService.DB, productID)
+	if err != nil {
+		return nil, productService.handleError(err)
 	}
 	return productService.loadProduct(result), nil
 }
 func (productService *ProductServiceImpl) GetAllProduct() ([]*response.ResProduct, error) {
-	result, err := productService.ProductRepositories.GetAllProduct()
-	if errCheck := productService.handleError(err); errCheck != nil {
-		return nil, errCheck
+
+	result, err := productService.ProductRepositories.GetAllProduct(productService.DB)
+	if err != nil {
+		return nil, productService.handleError(err)
 	}
 
 	products := []*response.ResProduct{}
@@ -57,29 +62,35 @@ func (productService *ProductServiceImpl) GetAllProduct() ([]*response.ResProduc
 
 func (productService *ProductServiceImpl) CreateProduct(request *request.ReqCreateProduct) (*response.ResProduct, error) {
 
-	result, err := productService.ProductRepositories.CreateProduct(&models.ProductModel{
+	result, err := productService.ProductRepositories.CreateProduct(productService.DB, &models.ProductModel{
 		Name:       request.Name,
 		Price:      request.Price,
 		Stock:      request.Stock,
 		CategoryID: request.CategoryId,
 	})
 
-	if errCheck := productService.handleError(err); errCheck != nil {
-		return nil, errCheck
+	if err != nil {
+		return nil, productService.handleError(err)
 	}
 
 	return productService.loadProduct(result), nil
 }
-func (productService *ProductServiceImpl) UpdateProduct(request *request.ReqUpdateProduct) (*response.ResProduct, error) {
-	result, err := productService.ProductRepositories.UpdateProductById(&models.ProductModel{
-		ID:         request.ID,
+func (productService *ProductServiceImpl) UpdateProductById(request *request.ReqUpdateProduct, productID int64) (*response.ResProduct, error) {
+	if err := productService.ProductRepositories.CheckProductNotFoundForUpdate(productService.DB, productID); err != nil {
+		return nil, productService.handleError(err)
+	}
+
+	result, err := productService.ProductRepositories.UpdateProductById(productService.DB, &models.ProductModel{
+		ID:         productID,
 		Name:       request.Name,
 		Price:      request.Price,
 		Stock:      request.Stock,
 		CategoryID: request.CategoryId,
 	})
-	if errCheck := productService.handleError(err); errCheck != nil {
-		return nil, errCheck
+
+	if err != nil {
+		return nil, productService.handleError(err)
 	}
+
 	return productService.loadProduct(result), nil
 }

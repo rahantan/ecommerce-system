@@ -6,6 +6,7 @@ import (
 	authhandlers "ecommerce-system/internal/handlers/auth"
 	carthandlers "ecommerce-system/internal/handlers/carts"
 	categoryhandlers "ecommerce-system/internal/handlers/categories"
+	orderhandlers "ecommerce-system/internal/handlers/orders"
 	producthandlers "ecommerce-system/internal/handlers/products"
 	"ecommerce-system/internal/middlewares"
 
@@ -20,19 +21,23 @@ type Handlers struct {
 	producthandlers.ProductHandlers
 	addresshandlers.AddressHandlers
 	carthandlers.CartItemHandlers
+	orderhandlers.OrderHandlers
 }
 
 func NewRoute(app *fiber.App, handler *Handlers) {
 
 	limit := limiter.New(middlewares.Limiter())
 
-	// AUTH (guest)
-	auth := app.Group("/auth", limit)
+	api := app.Group("/api")
+
+	// PUBLIC API
+	public := api.Group("/public", limit)
+	// AUTH
+	auth := public.Group("/auth")
 	auth.Post("/login", handler.AuthHandlers.Login)
 	auth.Post("/register", handler.AuthHandlers.Register)
 
-	// PUBLIC API
-	public := app.Group("/api", limit)
+	// public := app.Group("/api", limit)
 	public.Get("/products/:productId", handler.ProductHandlers.GetProductById)
 	public.Get("/products", handler.ProductHandlers.GetAllProduct)
 
@@ -40,20 +45,16 @@ func NewRoute(app *fiber.App, handler *Handlers) {
 	public.Get("/categories", handler.CategoryHandlers.GetAllCategory)
 
 	// PRIVATE API
-	private := app.Group(
-		"/api",
-		middlewares.JwtValidationToken(handler.Config.Jwt.SecretKey),
-		limit,
-	)
+	private := api.Group("/private", middlewares.JwtValidationToken(handler.Config.Jwt.SecretKey), limit)
 	private.Delete("/logout", handler.AuthHandlers.Logout)
 
 	// ADMIN
 	admin := private.Group("/admin", middlewares.Authorization(1))
-	admin.Post("/products", handler.ProductHandlers.CreateProduct)
 	admin.Put("/products/:productId", handler.ProductHandlers.UpdateProductById)
+	admin.Post("/products", handler.ProductHandlers.CreateProduct)
 
-	admin.Post("/categories", handler.CategoryHandlers.CreateCategory)
 	admin.Put("/categories/:categoryId", handler.CategoryHandlers.UpdateCategoryById)
+	admin.Post("/categories", handler.CategoryHandlers.CreateCategory)
 
 	// CUSTOMER
 	customer := private.Group("/customers", middlewares.Authorization(2))
@@ -65,6 +66,9 @@ func NewRoute(app *fiber.App, handler *Handlers) {
 
 	customer.Post("/carts", handler.CartItemHandlers.AddCartItem)
 	customer.Get("/carts", handler.CartItemHandlers.GetAllUserCartItem)
-	customer.Delete("/carts/:cartId", handler.CartItemHandlers.DeleteCartItemById)
+	customer.Delete("/carts", handler.CartItemHandlers.DeleteCartItemsByIDs)
 
+	customer.Get("/order/checkout", handler.OrderHandlers.GetLastDraftCheckOut)
+	customer.Post("/order/checkout", handler.OrderHandlers.CheckOut)
+	customer.Post("/order/confirm", handler.OrderHandlers.CheckOutConfirm)
 }

@@ -6,9 +6,8 @@ import (
 )
 
 type AddressServices interface {
-	UpdateAddressByUserId(request *request.ReqUpdateAddress) (*response.ResAddress, error)
-	GetUserActiveAddress(userId int64) (*response.ResAddress, error)
+	GetUserAddressActive(userId int64) (*response.ResAddress, error)
 	GetAllAddress(userid int64) ([]*response.ResAddress, error)
-	CreateAddress(request *request.ReqCreateAddress) (*response.ResAddress, error)
-	// ActivateAddress(addressID int64, userID int64) error
+	CreateAddress(request *request.ReqCreateAddress, userID int64) (*response.ResAddress, error)
+	UpdateAddressByUserId(request *request.ReqUpdateAddress, addressID int64, userID int64) (*response.ResAddress, error)
 }

@@ -6,15 +6,19 @@ import (
 	"ecommerce-system/internal/exceptions"
 	"ecommerce-system/internal/models"
 	categoryrepositories "ecommerce-system/internal/repositories/categories"
+
+	"gorm.io/gorm"
 )
 
 type CategoryServiceImpl struct {
 	categoryrepositories.CategoryRepositories
+	*gorm.DB
 }
 
-func NewCategoryService(Category categoryrepositories.CategoryRepositories) CategoryServices {
+func NewCategoryService(Category categoryrepositories.CategoryRepositories, db *gorm.DB) CategoryServices {
 	return &CategoryServiceImpl{
 		CategoryRepositories: Category,
+		DB:                   db,
 	}
 }
 
@@ -30,17 +34,17 @@ func (Category *CategoryServiceImpl) loadCategory(CategoryLoad *models.CategoryM
 		UpdatedAt: CategoryLoad.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
-func (categoryService *CategoryServiceImpl) GetCategoryById(id int64) (*response.ResCategory, error) {
-	result, err := categoryService.CategoryRepositories.GetCategoryById(id)
-	if errCheck := categoryService.handleError(err); errCheck != nil {
-		return nil, errCheck
+func (categoryService *CategoryServiceImpl) GetCategoryById(categoryID int64) (*response.ResCategory, error) {
+	result, err := categoryService.CategoryRepositories.GetCategoryById(categoryService.DB, categoryID)
+	if err != nil {
+		return nil, categoryService.handleError(err)
 	}
 	return categoryService.loadCategory(result), nil
 }
 func (categoryService *CategoryServiceImpl) GetAllCategory() ([]*response.ResCategory, error) {
-	result, err := categoryService.CategoryRepositories.GetAllCategory()
-	if errCheck := categoryService.handleError(err); errCheck != nil {
-		return nil, errCheck
+	result, err := categoryService.CategoryRepositories.GetAllCategory(categoryService.DB)
+	if err != nil {
+		return nil, categoryService.handleError(err)
 	}
 
 	Categorys := []*response.ResCategory{}
@@ -52,22 +56,24 @@ func (categoryService *CategoryServiceImpl) GetAllCategory() ([]*response.ResCat
 }
 
 func (categoryService *CategoryServiceImpl) CreateCategory(request *request.ReqCreateCategory) (*response.ResCategory, error) {
-	result, err := categoryService.CategoryRepositories.CreateCategory(&models.CategoryModel{
+	result, err := categoryService.CategoryRepositories.CreateCategory(categoryService.DB, &models.CategoryModel{
 		Name: request.Name,
 	})
-	if errCheck := categoryService.handleError(err); errCheck != nil {
-		return nil, errCheck
+
+	if err != nil {
+		return nil, categoryService.handleError(err)
 	}
 	return categoryService.loadCategory(result), nil
 }
-func (categoryService *CategoryServiceImpl) UpdateCategory(request *request.ReqUpdateCategory) (*response.ResCategory, error) {
+func (categoryService *CategoryServiceImpl) UpdateCategory(request *request.ReqUpdateCategory, categoryID int64) (*response.ResCategory, error) {
 
-	result, err := categoryService.CategoryRepositories.UpdateCategoryById(&models.CategoryModel{
-		ID:   request.ID,
+	result, err := categoryService.CategoryRepositories.UpdateCategoryById(categoryService.DB, &models.CategoryModel{
+		ID:   categoryID,
 		Name: request.Name,
 	})
-	if errCheck := categoryService.handleError(err); errCheck != nil {
-		return nil, errCheck
+
+	if err != nil {
+		return nil, categoryService.handleError(err)
 	}
 	return categoryService.loadCategory(result), nil
 }

@@ -4,6 +4,7 @@ import (
 	"ecommerce-system/internal/exceptions"
 	"ecommerce-system/internal/utils"
 	"errors"
+	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
@@ -13,7 +14,7 @@ func JwtValidationToken(secretKey string) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		tokenStr := ctx.Cookies("token")
 		if tokenStr == "" {
-			return exceptions.ErrCustomTokenEmpty
+			return exceptions.NewError(exceptions.DefaultMsgUnauthorized, "token is required", http.StatusUnauthorized)
 		}
 
 		claims := &utils.JwtPayload{}
@@ -25,7 +26,7 @@ func JwtValidationToken(secretKey string) fiber.Handler {
 		})
 
 		if err != nil {
-			return exceptions.ErrCustomInvalidToken
+			return exceptions.NewError(exceptions.DefaultMsgUnauthorized, "invalid token or expired", http.StatusUnauthorized)
 		}
 		if !token.Valid {
 			return errors.New("invalid parse token")

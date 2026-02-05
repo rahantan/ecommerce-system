@@ -10,5 +10,5 @@ type CategoryServices interface {
 
 	GetAllCategory() ([]*response.ResCategory, error)
 	CreateCategory(request *request.ReqCreateCategory) (*response.ResCategory, error)
-	UpdateCategory(request *request.ReqUpdateCategory) (*response.ResCategory, error)
+	UpdateCategory(request *request.ReqUpdateCategory, categoryID int64) (*response.ResCategory, error)
 }

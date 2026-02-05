@@ -9,6 +9,7 @@ import (
 )
 
 func responseErrCustom(ctx *fiber.Ctx, err *ErrorCustom) error {
+
 	return ctx.Status(err.StatusCode).JSON(response.ResponseStandard{
 		Success: false,
 		Message: err.Message,
@@ -19,8 +20,10 @@ func responseErrCustom(ctx *fiber.Ctx, err *ErrorCustom) error {
 func ErrorHandler(ctx *fiber.Ctx, err error) error {
 
 	errCustom, ok := err.(*ErrorCustom)
+
 	if ok && errCustom.StatusCode != http.StatusInternalServerError {
-		return responseErrCustom(ctx, errCustom)
+		res := responseErrCustom(ctx, errCustom)
+		return res
 	}
 
 	fmt.Println("error unexpected: ", err.Error())

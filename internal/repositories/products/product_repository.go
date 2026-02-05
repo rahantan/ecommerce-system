@@ -7,13 +7,10 @@ import (
 )
 
 type ProductRepositoryImpl struct {
-	*gorm.DB
 }
 
 func NewProductRepository(db *gorm.DB) ProductRepositories {
-	return &ProductRepositoryImpl{
-		DB: db,
-	}
+	return &ProductRepositoryImpl{}
 }
 
 func (productRepo *ProductRepositoryImpl) checkErrMysql(err error) error {
@@ -25,40 +22,45 @@ func (productRepo *ProductRepositoryImpl) checkErrMysql(err error) error {
 	}
 	return models.ErrProductNotFound
 }
-func (productRepo *ProductRepositoryImpl) checkProductNotFoundForUpdate(productID int64) bool {
+func (productRepo *ProductRepositoryImpl) CheckProductNotFoundForUpdate(db *gorm.DB, productID int64) error {
 	var count int64
-
-	if err := productRepo.DB.Model(&models.ProductModel{}).Where("id=?", productID).Count(&count).Error; err != nil {
-		return false
+	if err := db.Model(&models.ProductModel{}).Where("id=?", productID).Count(&count).Error; err != nil {
+		return err
 	}
+	if count == 0 {
+		return models.ErrProductNotFound
+	}
+	return nil
+}
+func (productRepo *ProductRepositoryImpl) GetAllProductByIDs(db *gorm.DB, productIDs []int64) ([]*models.ProductModel, error) {
+	var products []*models.ProductModel
 
-	return count == 0
+	if err := db.Where("id IN ?", productIDs).Preload("Category").Find(&products).Error; err != nil {
+		return nil, err
+	}
+	return products, nil
 }
 
-func (productRepo *ProductRepositoryImpl) GetProductById(productID int64) (*models.ProductModel, error) {
+func (productRepo *ProductRepositoryImpl) GetProductById(db *gorm.DB, productID int64) (*models.ProductModel, error) {
 	var product models.ProductModel
 
-	if err := productRepo.DB.Preload("Category").Where("id=?", productID).Take(&product).Error; err != nil {
+	if err := db.Preload("Category").Where("id=?", productID).Take(&product).Error; err != nil {
 		return nil, productRepo.checkErrMysql(err)
 	}
 
 	return &product, nil
 }
 
-func (productRepo *ProductRepositoryImpl) CreateProduct(product *models.ProductModel) (*models.ProductModel, error) {
-	if err := productRepo.DB.Create(product).Error; err != nil {
+func (productRepo *ProductRepositoryImpl) CreateProduct(db *gorm.DB, product *models.ProductModel) (*models.ProductModel, error) {
+	if err := db.Create(product).Error; err != nil {
 		return nil, productRepo.checkErrMysql(err)
 	}
-	return productRepo.GetProductById(product.ID)
+	return productRepo.GetProductById(db, product.ID)
 }
 
-func (productRepo *ProductRepositoryImpl) UpdateProductById(product *models.ProductModel) (*models.ProductModel, error) {
+func (productRepo *ProductRepositoryImpl) UpdateProductById(db *gorm.DB, product *models.ProductModel) (*models.ProductModel, error) {
 
-	if productRepo.checkProductNotFoundForUpdate(product.ID) {
-		return nil, models.ErrProductNotFound
-	}
-
-	result := productRepo.DB.Model(&models.ProductModel{}).Where("id=?", product.ID).Updates(product)
+	result := db.Model(&models.ProductModel{}).Where("id=?", product.ID).Updates(product)
 	if err := result.Error; err != nil {
 		return nil, productRepo.checkErrMysql(err)
 	}
@@ -67,14 +69,33 @@ func (productRepo *ProductRepositoryImpl) UpdateProductById(product *models.Prod
 		return nil, models.ErrNoRowsAffected
 	}
 
-	return productRepo.GetProductById(product.ID)
+	return productRepo.GetProductById(db, product.ID)
 }
 
-func (productRepo *ProductRepositoryImpl) GetAllProduct() ([]*models.ProductModel, error) {
+func (productRepo *ProductRepositoryImpl) GetAllProduct(db *gorm.DB) ([]*models.ProductModel, error) {
 	var products []*models.ProductModel
 
-	if err := productRepo.DB.Preload("Category").Find(&products).Error; err != nil {
+	if err := db.Preload("Category").Find(&products).Error; err != nil {
 		return nil, err
 	}
 	return products, nil
+}
+
+func (productRepo *ProductRepositoryImpl) UpdateProductStockByID(db *gorm.DB, products []*models.ProductModel) error {
+
+	sql := "UPDATE products SET stock = CASE id "
+	args := []interface{}{}
+	ids := []interface{}{}
+
+	for _, p := range products {
+		sql += "WHEN ? THEN ? "
+		args = append(args, p.ID, p.Stock)
+		ids = append(ids, p.ID)
+	}
+
+	args = append(args, ids)
+
+	sql += "END WHERE id IN (?)"
+	return db.Exec(sql, args...).Error
+
 }

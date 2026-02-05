@@ -6,8 +6,8 @@ import (
 )
 
 type ProductServices interface {
-	GetProductById(id int64) (*response.ResProduct, error)
+	GetProductById(productID int64) (*response.ResProduct, error)
 	GetAllProduct() ([]*response.ResProduct, error)
 	CreateProduct(request *request.ReqCreateProduct) (*response.ResProduct, error)
-	UpdateProduct(request *request.ReqUpdateProduct) (*response.ResProduct, error)
+	UpdateProductById(request *request.ReqUpdateProduct, productID int64) (*response.ResProduct, error)
 }

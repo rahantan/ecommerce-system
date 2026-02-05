@@ -28,48 +28,49 @@ func (userRepo *UserRepositoryImpl) checkErrMysql(err error) error {
 	}
 	return models.ErrUserNotFound
 }
-func (userRepo *UserRepositoryImpl) GetUserPasswordByEmail(email string) (string, error) {
-	var password string
 
-	if err := userRepo.DB.Model(&models.UserModel{}).Select("password").Where("email=?", email).Scan(&password).Error; err != nil {
-		return "", userRepo.checkErrMysql(err)
-	}
+// func (userRepo *UserRepositoryImpl) GetUserPasswordByEmail(db *gorm.DB, email string) (string, error) {
+// 	var password string
 
-	if password == "" {
-		return "", models.ErrUserNotFound
-	}
-	return password, nil
-}
-func (userRepo *UserRepositoryImpl) GetUserByEmail(email string) (*models.UserModel, error) {
+// 	if err := db.Model(&models.UserModel{}).Select("password").Where("email=?", email).Scan(&password).Error; err != nil {
+// 		return "", userRepo.checkErrMysql(err)
+// 	}
+
+//		if password == "" {
+//			return "", models.ErrUserNotFound
+//		}
+//		return password, nil
+//	}
+func (userRepo *UserRepositoryImpl) GetUserByEmail(db *gorm.DB, email string) (*models.UserModel, error) {
 	var user models.UserModel
 
-	if err := userRepo.DB.Preload("Role").Preload("Address").Where("email=?", email).Take(&user).Error; err != nil {
+	if err := db.Preload("Role").Preload("Address").Where("email=?", email).Take(&user).Error; err != nil {
 		return nil, userRepo.checkErrMysql(err)
 	}
 
 	return &user, nil
 }
-func (userRepo *UserRepositoryImpl) GetAllUser() ([]*models.UserModel, error) {
+func (userRepo *UserRepositoryImpl) GetAllUser(db *gorm.DB) ([]*models.UserModel, error) {
 	var users []*models.UserModel
 
-	if err := userRepo.DB.Find(&users).Error; err != nil {
+	if err := db.Find(&users).Error; err != nil {
 		return nil, err
 	}
 
 	return users, nil
 }
 
-func (userRepo *UserRepositoryImpl) CreateUser(user *models.UserModel) (*models.UserModel, error) {
+func (userRepo *UserRepositoryImpl) CreateUser(db *gorm.DB, user *models.UserModel) (*models.UserModel, error) {
 
-	if err := userRepo.DB.Create(user).Error; err != nil {
+	if err := db.Create(user).Error; err != nil {
 		return nil, userRepo.checkErrMysql(err)
 	}
 
-	return userRepo.GetUserByEmail(user.Email)
+	return userRepo.GetUserByEmail(db, user.Email)
 }
 
-func (userRepo *UserRepositoryImpl) UpdateUser(user *models.UserModel) (*models.UserModel, error) {
-	result := userRepo.DB.Model(&models.UserModel{}).Where("id = ?", user.ID).Updates(user)
+func (userRepo *UserRepositoryImpl) UpdateUser(db *gorm.DB, user *models.UserModel) (*models.UserModel, error) {
+	result := db.Model(&models.UserModel{}).Where("id = ?", user.ID).Updates(user)
 	if result.Error != nil {
 		return nil, userRepo.checkErrMysql(result.Error)
 	}

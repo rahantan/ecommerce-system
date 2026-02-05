@@ -25,19 +25,22 @@ func CheckError(err error) error {
 	}
 	switch {
 	case errors.Is(err, models.ErrUserNotFound):
-		return ErrCustomUserNotFound
+		return NewError(DefaultMsgNotFound, err.Error(), http.StatusNotFound)
 	case errors.Is(err, models.ErrDuplicateEmail):
-		return ErrCustomEmailAlreadyExist
+		return NewError(DefaultMsgConflict, err.Error(), http.StatusConflict)
 	case errors.Is(err, models.ErrCategoryNotFound):
-		return ErrCustomCategoryNotFound
+		return NewError(DefaultMsgNotFound, err.Error(), http.StatusNotFound)
 	case errors.Is(err, models.ErrProductNotFound):
-		return ErrCustomProductNotFound
+		return NewError(DefaultMsgNotFound, err.Error(), http.StatusNotFound)
 	case errors.Is(err, models.ErrRoleNotFound):
-		return ErrCustomRoleNotFound
+		return NewError(DefaultMsgNotFound, err.Error(), http.StatusNotFound)
 	case errors.Is(err, models.ErrAddressNotFound):
-		return ErrCustomAddressNotFound
+		return NewError(DefaultMsgNotFound, err.Error(), http.StatusNotFound)
 	case errors.Is(err, models.ErrCartItemNotFound):
-		return NewError("", "not found cart item", http.StatusFound)
+		return NewError(DefaultMsgNotFound, err.Error(), http.StatusNotFound)
+	case errors.Is(err, models.ErrCheckOutNotFound):
+		return NewError(DefaultMsgNotFound, err.Error(), http.StatusNotFound) //ini bakalan nil
+
 	default:
 		return err
 	}

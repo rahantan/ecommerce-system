@@ -2,13 +2,15 @@ package userrepositories
 
 import (
 	"ecommerce-system/internal/models"
+
+	"gorm.io/gorm"
 )
 
 type UserRepositories interface {
-	GetUserByEmail(email string) (*models.UserModel, error)
-	GetAllUser() ([]*models.UserModel, error)
-	CreateUser(user *models.UserModel) (*models.UserModel, error)
-	UpdateUser(user *models.UserModel) (*models.UserModel, error)
+	GetUserByEmail(db *gorm.DB, email string) (*models.UserModel, error)
+	GetAllUser(db *gorm.DB) ([]*models.UserModel, error)
+	CreateUser(db *gorm.DB, user *models.UserModel) (*models.UserModel, error)
+	UpdateUser(db *gorm.DB, user *models.UserModel) (*models.UserModel, error)
 
-	GetUserPasswordByEmail(email string) (string, error)
+	// GetUserPasswordByEmail(db *gorm.DB, email string) (string, error)
 }
