@@ -3,27 +3,23 @@ package exceptions
 import (
 	"ecommerce-system/internal/dto/response"
 	"fmt"
-	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func responseErrCustom(ctx *fiber.Ctx, err *ErrorCustom) error {
 
-	return ctx.Status(err.StatusCode).JSON(response.ResponseStandard{
+	return ctx.Status(err.GetStatusCode()).JSON(response.ResponseStandard{
 		Success: false,
-		Message: err.Message,
+		Message: string(err.Message),
 		Errors:  err.Errors,
 	})
 }
 
 func ErrorHandler(ctx *fiber.Ctx, err error) error {
 
-	errCustom, ok := err.(*ErrorCustom)
-
-	if ok && errCustom.StatusCode != http.StatusInternalServerError {
-		res := responseErrCustom(ctx, errCustom)
-		return res
+	if errCustom, ok := err.(*ErrorCustom); ok {
+		return responseErrCustom(ctx, errCustom)
 	}
 
 	fmt.Println("error unexpected: ", err.Error())

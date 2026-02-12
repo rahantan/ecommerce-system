@@ -3,9 +3,9 @@ package addressservices
 import (
 	"ecommerce-system/internal/dto/request"
 	"ecommerce-system/internal/dto/response"
-	"ecommerce-system/internal/exceptions"
 	"ecommerce-system/internal/models"
 	addressrepositories "ecommerce-system/internal/repositories/addresses"
+	"ecommerce-system/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -22,10 +22,6 @@ func NewAddressService(address addressrepositories.AddressRepositories, db *gorm
 	}
 }
 
-func (addressService *AddressServiceImpl) handleError(err error) error {
-	return exceptions.CheckError(err)
-}
-
 func (addressService *AddressServiceImpl) loadAddress(address *models.AddressModel) *response.ResAddress {
 	return &response.ResAddress{
 		ID:       address.ID,
@@ -36,15 +32,16 @@ func (addressService *AddressServiceImpl) loadAddress(address *models.AddressMod
 }
 func (addressService *AddressServiceImpl) GetUserAddressActive(userId int64) (*response.ResAddress, error) {
 	result, err := addressService.AddressRepositories.GetUserAddressActive(addressService.DB, userId)
-	if errCheck := addressService.handleError(err); errCheck != nil {
-		return nil, errCheck
+	if err != nil {
+		return nil, utils.MappingError(err)
 	}
+
 	return addressService.loadAddress(result), nil
 }
 func (addressService *AddressServiceImpl) GetAllAddress(userId int64) ([]*response.ResAddress, error) {
 	result, err := addressService.AddressRepositories.GetAllAddress(addressService.DB, userId)
-	if errCheck := addressService.handleError(err); errCheck != nil {
-		return nil, errCheck
+	if err != nil {
+		return nil, utils.MappingError(err)
 	}
 
 	addresss := []*response.ResAddress{}
@@ -63,7 +60,7 @@ func (addressService *AddressServiceImpl) CreateAddress(request *request.ReqCrea
 		if *request.IsActive {
 			if _, err := addressService.AddressRepositories.GetUserAddressActive(tx, userID); err == nil {
 				if err := addressService.AddressRepositories.DeActivate(tx, userID); err != nil {
-					return err
+					return utils.MappingError(err)
 				}
 			}
 		}
@@ -75,7 +72,7 @@ func (addressService *AddressServiceImpl) CreateAddress(request *request.ReqCrea
 			IsActive: *request.IsActive,
 		})
 		if err != nil {
-			return err
+			return utils.MappingError(err)
 		}
 
 		addressModel = result
@@ -83,22 +80,23 @@ func (addressService *AddressServiceImpl) CreateAddress(request *request.ReqCrea
 	})
 
 	if err != nil {
-		return nil, addressService.handleError(err)
+		return nil, err
 	}
+
 	return addressService.loadAddress(addressModel), nil
 }
 
 func (addressService *AddressServiceImpl) UpdateAddressByUserId(request *request.ReqUpdateAddress, addressID int64, userID int64) (*response.ResAddress, error) {
 
 	if err := addressService.AddressRepositories.CheckNotFoundForUpdate(addressService.DB, addressID); err != nil {
-		return nil, addressService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
 	var addressModel *models.AddressModel
 	err := addressService.DB.Transaction(func(tx *gorm.DB) error {
 
 		if *request.IsActive {
 			if err := addressService.AddressRepositories.DeActivate(tx, userID); err != nil {
-				return err
+				return utils.MappingError(err)
 			}
 		}
 
@@ -111,7 +109,7 @@ func (addressService *AddressServiceImpl) UpdateAddressByUserId(request *request
 		})
 
 		if err != nil {
-			return err
+			return utils.MappingError(err)
 		}
 
 		addressModel = result
@@ -119,7 +117,7 @@ func (addressService *AddressServiceImpl) UpdateAddressByUserId(request *request
 	})
 
 	if err != nil {
-		return nil, addressService.handleError(err)
+		return nil, err
 	}
 
 	return addressService.loadAddress(addressModel), nil

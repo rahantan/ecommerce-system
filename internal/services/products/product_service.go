@@ -3,9 +3,9 @@ package productservices
 import (
 	"ecommerce-system/internal/dto/request"
 	"ecommerce-system/internal/dto/response"
-	"ecommerce-system/internal/exceptions"
 	"ecommerce-system/internal/models"
 	productrepositories "ecommerce-system/internal/repositories/products"
+	"ecommerce-system/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -21,9 +21,7 @@ func NewProductService(product productrepositories.ProductRepositories, db *gorm
 		DB:                  db,
 	}
 }
-func (productService *ProductServiceImpl) handleError(err error) error {
-	return exceptions.CheckError(err)
-}
+
 func (product *ProductServiceImpl) loadProduct(productLoad *models.ProductModel) *response.ResProduct {
 	return &response.ResProduct{
 		ID:        productLoad.ID,
@@ -41,15 +39,16 @@ func (product *ProductServiceImpl) loadProduct(productLoad *models.ProductModel)
 func (productService *ProductServiceImpl) GetProductById(productID int64) (*response.ResProduct, error) {
 	result, err := productService.ProductRepositories.GetProductById(productService.DB, productID)
 	if err != nil {
-		return nil, productService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
+
 	return productService.loadProduct(result), nil
 }
 func (productService *ProductServiceImpl) GetAllProduct() ([]*response.ResProduct, error) {
 
 	result, err := productService.ProductRepositories.GetAllProduct(productService.DB)
 	if err != nil {
-		return nil, productService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
 
 	products := []*response.ResProduct{}
@@ -70,14 +69,14 @@ func (productService *ProductServiceImpl) CreateProduct(request *request.ReqCrea
 	})
 
 	if err != nil {
-		return nil, productService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
 
 	return productService.loadProduct(result), nil
 }
 func (productService *ProductServiceImpl) UpdateProductById(request *request.ReqUpdateProduct, productID int64) (*response.ResProduct, error) {
 	if err := productService.ProductRepositories.CheckProductNotFoundForUpdate(productService.DB, productID); err != nil {
-		return nil, productService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
 
 	result, err := productService.ProductRepositories.UpdateProductById(productService.DB, &models.ProductModel{
@@ -89,7 +88,7 @@ func (productService *ProductServiceImpl) UpdateProductById(request *request.Req
 	})
 
 	if err != nil {
-		return nil, productService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
 
 	return productService.loadProduct(result), nil

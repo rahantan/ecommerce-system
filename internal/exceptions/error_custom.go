@@ -4,52 +4,69 @@ import (
 	"net/http"
 )
 
-type ErrorCustom struct {
-	Message    string
-	Errors     any
-	StatusCode int
-}
-
-func NewError(message string, err any, statusCode int) *ErrorCustom {
-	return &ErrorCustom{
-		Message:    message,
-		Errors:     err,
-		StatusCode: statusCode,
-	}
-}
-
-func (err *ErrorCustom) Error() string {
-	return err.Message
-}
-
-func (err *ErrorCustom) WithMessage(msg string) *ErrorCustom {
-
-	return &ErrorCustom{
-		Message:    msg,
-		Errors:     err.Errors,
-		StatusCode: err.StatusCode,
-	}
-}
+type Kind string
 
 const (
-	DefaultMsgBadRequest      = "bad request"
-	DefaultMsgValidationError = "validation error"
-	DefaultMsgUnauthorized    = "unauthorized"
-	DefaultMsgForbidden       = "access denied"
-	DefaultMsgNotFound        = "not found"
-	DefaultMsgConflict        = "conflict"
+	KindInternal        Kind = "internal server error"
+	KindBadRequest      Kind = "bad request"
+	KindValidationError Kind = "validation error"
+	KindUnauthorized    Kind = "unauthorized"
+	KindForbidden       Kind = "access denied"
+	KindNotFound        Kind = "not found"
+	KindConflict        Kind = "conflict"
+	KindCancelled       Kind = "cancelled"
 )
 
 // CUSTOM ERROR
 var (
-	ErrCustomInvalidPayload = NewError(DefaultMsgBadRequest, "invalid payload", http.StatusBadRequest)
+	ErrCustomUnauthorized   = NewError(KindUnauthorized, "authentication required", nil)
+	ErrCustomForbidden      = NewError(KindForbidden, "access to this resource is denied", nil)
+	ErrCustomInvalidPayload = NewError(KindBadRequest, "invalid payload", nil)
 
-	ErrCustomInvalidCategoryId = NewError(DefaultMsgValidationError, "invalid category id", http.StatusUnprocessableEntity)
-	ErrCustomInvalidAddressId  = NewError(DefaultMsgValidationError, "invalid address id", http.StatusUnprocessableEntity)
-	ErrCustomInvalidProductId  = NewError(DefaultMsgValidationError, "invalid product id", http.StatusUnprocessableEntity)
-	ErrCustomInvalidCartId     = NewError(DefaultMsgValidationError, "invalid cart id", http.StatusUnprocessableEntity)
+	//PARAMS ERR
+	ErrCustomInvalidCategoryId = NewError(KindValidationError, "invalid category id", nil)
+	ErrCustomInvalidAddressId  = NewError(KindValidationError, "invalid address id", nil)
+	ErrCustomInvalidProductId  = NewError(KindValidationError, "invalid product id", nil)
+	ErrCustomInvalidCartId     = NewError(KindValidationError, "invalid cart id", nil)
 
-	ErrCustomUnauthorized = NewError(DefaultMsgUnauthorized, "authentication required", http.StatusUnauthorized)
-
-	ErrCustomForbidden = NewError(DefaultMsgForbidden, "access to this resource is denied", http.StatusForbidden)
+	ErrCustomLogin = NewError(KindUnauthorized, "invalid email or password", nil)
 )
+
+type ErrorCustom struct {
+	Kind    Kind
+	Message string
+	Errors  any
+}
+
+func NewError(kind Kind, message string, errs any) *ErrorCustom {
+	return &ErrorCustom{
+		Kind:    kind,
+		Message: message,
+		Errors:  errs,
+	}
+}
+
+func (err *ErrorCustom) Error() string {
+	return string(err.Message)
+}
+func (err *ErrorCustom) GetStatusCode() int {
+
+	switch err.Kind {
+	case KindValidationError:
+		return http.StatusBadRequest
+	case KindCancelled:
+		return http.StatusUnprocessableEntity
+	case KindBadRequest:
+		return http.StatusBadRequest
+	case KindUnauthorized:
+		return http.StatusUnauthorized
+	case KindForbidden:
+		return http.StatusForbidden
+	case KindNotFound:
+		return http.StatusNotFound
+	case KindConflict:
+		return http.StatusConflict
+	default:
+		return http.StatusInternalServerError
+	}
+}

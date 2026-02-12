@@ -3,9 +3,9 @@ package categoryservices
 import (
 	"ecommerce-system/internal/dto/request"
 	"ecommerce-system/internal/dto/response"
-	"ecommerce-system/internal/exceptions"
 	"ecommerce-system/internal/models"
 	categoryrepositories "ecommerce-system/internal/repositories/categories"
+	"ecommerce-system/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -22,10 +22,6 @@ func NewCategoryService(Category categoryrepositories.CategoryRepositories, db *
 	}
 }
 
-func (categoryService *CategoryServiceImpl) handleError(err error) error {
-	return exceptions.CheckError(err)
-}
-
 func (Category *CategoryServiceImpl) loadCategory(CategoryLoad *models.CategoryModel) *response.ResCategory {
 	return &response.ResCategory{
 		ID:        CategoryLoad.ID,
@@ -35,16 +31,19 @@ func (Category *CategoryServiceImpl) loadCategory(CategoryLoad *models.CategoryM
 	}
 }
 func (categoryService *CategoryServiceImpl) GetCategoryById(categoryID int64) (*response.ResCategory, error) {
+
 	result, err := categoryService.CategoryRepositories.GetCategoryById(categoryService.DB, categoryID)
 	if err != nil {
-		return nil, categoryService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
+
 	return categoryService.loadCategory(result), nil
 }
 func (categoryService *CategoryServiceImpl) GetAllCategory() ([]*response.ResCategory, error) {
+
 	result, err := categoryService.CategoryRepositories.GetAllCategory(categoryService.DB)
 	if err != nil {
-		return nil, categoryService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
 
 	Categorys := []*response.ResCategory{}
@@ -61,8 +60,9 @@ func (categoryService *CategoryServiceImpl) CreateCategory(request *request.ReqC
 	})
 
 	if err != nil {
-		return nil, categoryService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
+
 	return categoryService.loadCategory(result), nil
 }
 func (categoryService *CategoryServiceImpl) UpdateCategory(request *request.ReqUpdateCategory, categoryID int64) (*response.ResCategory, error) {
@@ -73,7 +73,8 @@ func (categoryService *CategoryServiceImpl) UpdateCategory(request *request.ReqU
 	})
 
 	if err != nil {
-		return nil, categoryService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
+
 	return categoryService.loadCategory(result), nil
 }

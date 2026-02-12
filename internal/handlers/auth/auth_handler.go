@@ -28,10 +28,6 @@ func NewAuthController(user userservices.UserServices, v *validator.Validate, c 
 	}
 }
 
-func (auth *AuthHandlerImpl) withMessage(err error, msg string) error {
-	return utils.WithMessage(err, msg)
-}
-
 func (auth *AuthHandlerImpl) Logout(ctx *fiber.Ctx) error {
 	ctx.Cookie(&fiber.Cookie{
 		Name:   "token",
@@ -44,24 +40,23 @@ func (auth *AuthHandlerImpl) Logout(ctx *fiber.Ctx) error {
 }
 func (auth *AuthHandlerImpl) Login(ctx *fiber.Ctx) error {
 	var body request.ReqLogin
-	err := ctx.BodyParser(&body)
-	if err != nil {
-		return auth.withMessage(exceptions.ErrCustomInvalidPayload, "failed to login")
+
+	if err := ctx.BodyParser(&body); err != nil {
+		return exceptions.ErrCustomInvalidPayload
 	}
 
-	err = auth.Validate.Struct(&body)
-	if err != nil {
-		return auth.withMessage(exceptions.ValidationError(err), "failed to login")
+	if err := auth.Validate.Struct(&body); err != nil {
+		return exceptions.ValidationError(err)
 	}
 
 	result, err := auth.UserServices.Login(&body)
 	if err != nil {
-		return auth.withMessage(err, "failed to login")
+		return err
 	}
 
 	token, err := utils.GetToken(*result, auth.Config.Jwt.SecretKey)
 	if err != nil {
-		return auth.withMessage(err, "failed to login")
+		return err
 	}
 
 	ctx.Cookie(&fiber.Cookie{
@@ -82,19 +77,17 @@ func (auth *AuthHandlerImpl) Login(ctx *fiber.Ctx) error {
 }
 func (auth *AuthHandlerImpl) Register(ctx *fiber.Ctx) error {
 	var body request.ReqCreateUser
-	err := ctx.BodyParser(&body)
-	if err != nil {
-		return auth.withMessage(exceptions.ErrCustomInvalidPayload, "failed to register")
+	if err := ctx.BodyParser(&body); err != nil {
+		return exceptions.ErrCustomInvalidPayload
 	}
 
-	err = auth.Validate.Struct(&body)
-	if err != nil {
-		return auth.withMessage(exceptions.ValidationError(err), "failed to register")
+	if err := auth.Validate.Struct(&body); err != nil {
+		return exceptions.ValidationError(err)
 	}
 
 	result, err := auth.UserServices.Register(&body)
 	if err != nil {
-		return auth.withMessage(err, "failed to register")
+		return err
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(response.ResponseStandard{

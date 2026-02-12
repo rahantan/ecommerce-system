@@ -5,7 +5,6 @@ import (
 	"ecommerce-system/internal/dto/response"
 	"ecommerce-system/internal/exceptions"
 	addressservices "ecommerce-system/internal/services/addresses"
-	"ecommerce-system/internal/utils"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
@@ -23,30 +22,34 @@ func NewAddressHandler(address addressservices.AddressServices, v *validator.Val
 		Validate:        v,
 	}
 }
-
-func (addressHandler *AddressHandlerImpl) withMessage(err error, msg string) error {
-	return utils.WithMessage(err, msg)
-}
-func (addressHandler *AddressHandlerImpl) CreateAddress(ctx *fiber.Ctx) error {
-	var body request.ReqCreateAddress
-
+func (addressHandler *AddressHandlerImpl) getUserData(ctx *fiber.Ctx) (*response.ResUser, error) {
 	user, ok := ctx.Locals("user").(response.ResUser)
 	if !ok {
-		return addressHandler.withMessage(exceptions.ErrCustomUnauthorized, "failed to create address")
+		return nil, exceptions.ErrCustomUnauthorized
 	}
-	err := ctx.BodyParser(&body)
+	return &user, nil
+}
+
+func (addressHandler *AddressHandlerImpl) CreateAddress(ctx *fiber.Ctx) error {
+
+	user, err := addressHandler.getUserData(ctx)
 	if err != nil {
-		return addressHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to create address")
+		return err
 	}
 
-	err = addressHandler.Validate.Struct(&body)
-	if err != nil {
-		return addressHandler.withMessage(exceptions.ValidationError(err), "failed to create address")
+	var body request.ReqCreateAddress
+
+	if err := ctx.BodyParser(&body); err != nil {
+		return exceptions.ErrCustomInvalidPayload
+	}
+
+	if err := addressHandler.Validate.Struct(&body); err != nil {
+		return exceptions.ValidationError(err)
 	}
 
 	result, err := addressHandler.AddressServices.CreateAddress(&body, user.ID)
 	if err != nil {
-		return addressHandler.withMessage(err, "failed to create address")
+		return err
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(response.ResponseStandard{
@@ -59,13 +62,13 @@ func (addressHandler *AddressHandlerImpl) CreateAddress(ctx *fiber.Ctx) error {
 }
 func (addressHandler *AddressHandlerImpl) GetAllAddress(ctx *fiber.Ctx) error {
 
-	user, ok := ctx.Locals("user").(response.ResUser)
-	if !ok {
-		return addressHandler.withMessage(exceptions.ErrCustomUnauthorized, "failed to get addresses")
+	user, err := addressHandler.getUserData(ctx)
+	if err != nil {
+		return err
 	}
 	result, err := addressHandler.AddressServices.GetAllAddress(user.ID)
 	if err != nil {
-		return addressHandler.withMessage(err, "failed to get addresses")
+		return err
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
@@ -78,30 +81,30 @@ func (addressHandler *AddressHandlerImpl) GetAllAddress(ctx *fiber.Ctx) error {
 }
 
 func (addressHandler *AddressHandlerImpl) UpdateAddressByUserId(ctx *fiber.Ctx) error {
+
+	user, err := addressHandler.getUserData(ctx)
+	if err != nil {
+		return err
+	}
+
 	var body request.ReqUpdateAddress
 
-	err := ctx.BodyParser(&body)
-	if err != nil {
-		return addressHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to update address")
+	if err := ctx.BodyParser(&body); err != nil {
+		return exceptions.ErrCustomInvalidPayload
 	}
 
 	addressId, err := strconv.Atoi(ctx.Params("addressId"))
 	if err != nil {
-		return addressHandler.withMessage(exceptions.ErrCustomInvalidAddressId, "failed to update address")
+		return exceptions.ErrCustomInvalidAddressId
 	}
 
-	user, ok := ctx.Locals("user").(response.ResUser)
-	if !ok {
-		return addressHandler.withMessage(exceptions.ErrCustomUnauthorized, "failed to update address")
-	}
-	err = addressHandler.Validate.Struct(&body)
-	if err != nil {
-		return addressHandler.withMessage(exceptions.ValidationError(err), "failed to update address")
+	if err = addressHandler.Validate.Struct(&body); err != nil {
+		return exceptions.ValidationError(err)
 	}
 
 	result, err := addressHandler.AddressServices.UpdateAddressByUserId(&body, int64(addressId), user.ID)
 	if err != nil {
-		return addressHandler.withMessage(err, "failed to update address")
+		return err
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
@@ -114,14 +117,16 @@ func (addressHandler *AddressHandlerImpl) UpdateAddressByUserId(ctx *fiber.Ctx) 
 }
 func (addressHandler *AddressHandlerImpl) GetUserActiveAddress(ctx *fiber.Ctx) error {
 
-	user, ok := ctx.Locals("user").(response.ResUser)
-	if !ok {
-		return addressHandler.withMessage(exceptions.ErrCustomUnauthorized, "failed to get address")
+	user, err := addressHandler.getUserData(ctx)
+	if err != nil {
+		return err
 	}
+
 	result, err := addressHandler.AddressServices.GetUserAddressActive(user.ID)
 	if err != nil {
-		return addressHandler.withMessage(err, "failed to get address")
+		return err
 	}
+
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
 		Success: true,
 		Message: "success get address",

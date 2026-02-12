@@ -30,45 +30,52 @@ func NewRoute(app *fiber.App, handler *Handlers) {
 
 	api := app.Group("/api")
 
-	// PUBLIC API
 	public := api.Group("/public", limit)
-	// AUTH
-	auth := public.Group("/auth")
-	auth.Post("/login", handler.AuthHandlers.Login)
-	auth.Post("/register", handler.AuthHandlers.Register)
+	handler.Public(public)
 
-	// public := app.Group("/api", limit)
-	public.Get("/products/:productId", handler.ProductHandlers.GetProductById)
-	public.Get("/products", handler.ProductHandlers.GetAllProduct)
-
-	public.Get("/categories/:categoryId", handler.CategoryHandlers.GetCategoryById)
-	public.Get("/categories", handler.CategoryHandlers.GetAllCategory)
-
-	// PRIVATE API
 	private := api.Group("/private", middlewares.JwtValidationToken(handler.Config.Jwt.SecretKey), limit)
 	private.Delete("/logout", handler.AuthHandlers.Logout)
 
-	// ADMIN
 	admin := private.Group("/admin", middlewares.Authorization(1))
-	admin.Put("/products/:productId", handler.ProductHandlers.UpdateProductById)
-	admin.Post("/products", handler.ProductHandlers.CreateProduct)
+	handler.Admin(admin)
 
-	admin.Put("/categories/:categoryId", handler.CategoryHandlers.UpdateCategoryById)
-	admin.Post("/categories", handler.CategoryHandlers.CreateCategory)
+	customers := private.Group("/customers", middlewares.Authorization(2))
+	handler.Customers(customers)
 
-	// CUSTOMER
-	customer := private.Group("/customers", middlewares.Authorization(2))
+}
 
-	customer.Get("/addresses/active", handler.AddressHandlers.GetUserActiveAddress)
-	customer.Get("/addresses", handler.AddressHandlers.GetAllAddress)
-	customer.Post("/addresses", handler.AddressHandlers.CreateAddress)
-	customer.Put("/addresses/:addressId", handler.AddressHandlers.UpdateAddressByUserId)
+func (route *Handlers) Public(public fiber.Router) {
+	auth := public.Group("/auth")
+	auth.Post("/login", route.AuthHandlers.Login)
+	auth.Post("/register", route.AuthHandlers.Register)
 
-	customer.Post("/carts", handler.CartItemHandlers.AddCartItem)
-	customer.Get("/carts", handler.CartItemHandlers.GetAllUserCartItem)
-	customer.Delete("/carts", handler.CartItemHandlers.DeleteCartItemsByIDs)
+	public.Get("/products/:productId", route.ProductHandlers.GetProductById)
+	public.Get("/products", route.ProductHandlers.GetAllProduct)
 
-	customer.Get("/order/checkout", handler.OrderHandlers.GetLastDraftCheckOut)
-	customer.Post("/order/checkout", handler.OrderHandlers.CheckOut)
-	customer.Post("/order/confirm", handler.OrderHandlers.CheckOutConfirm)
+	public.Get("/categories/:categoryId", route.CategoryHandlers.GetCategoryById)
+	public.Get("/categories", route.CategoryHandlers.GetAllCategory)
+}
+
+func (route *Handlers) Admin(admin fiber.Router) {
+	admin.Put("/products/:productId", route.ProductHandlers.UpdateProductById)
+	admin.Post("/products", route.ProductHandlers.CreateProduct)
+
+	admin.Put("/categories/:categoryId", route.CategoryHandlers.UpdateCategoryById)
+	admin.Post("/categories", route.CategoryHandlers.CreateCategory)
+
+}
+
+func (route *Handlers) Customers(customer fiber.Router) {
+	customer.Get("/addresses/active", route.AddressHandlers.GetUserActiveAddress)
+	customer.Get("/addresses", route.AddressHandlers.GetAllAddress)
+	customer.Post("/addresses", route.AddressHandlers.CreateAddress)
+	customer.Put("/addresses/:addressId", route.AddressHandlers.UpdateAddressByUserId)
+
+	customer.Post("/carts", route.CartItemHandlers.AddCartItem)
+	customer.Get("/carts", route.CartItemHandlers.GetAllUserCartItem)
+	customer.Delete("/carts", route.CartItemHandlers.DeleteCartItemsByIDs)
+
+	customer.Get("/order/checkout", route.OrderHandlers.GetLastDraftCheckOut)
+	customer.Post("/order/checkout", route.OrderHandlers.CheckOut)
+	customer.Post("/order/confirm", route.OrderHandlers.CheckOutConfirm)
 }

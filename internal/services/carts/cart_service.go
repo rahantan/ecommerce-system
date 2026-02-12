@@ -7,8 +7,8 @@ import (
 	"ecommerce-system/internal/models"
 	cartitemrepositories "ecommerce-system/internal/repositories/carts"
 	productservices "ecommerce-system/internal/services/products"
+	"ecommerce-system/internal/utils"
 	"fmt"
-	"net/http"
 
 	"gorm.io/gorm"
 )
@@ -40,13 +40,11 @@ func (cartService *CartItemServiceImpl) loadRes(cartItem *models.CartItemModel) 
 		SubTotal: cartItem.SubTotal,
 	}
 }
-func (cartService *CartItemServiceImpl) handleError(err error) error {
-	return exceptions.CheckError(err)
-}
+
 func (cartService *CartItemServiceImpl) CreateOrUpdateCartItem(request *request.ReqCreateOrUpdateCartItem, userID int64) (*response.ResCartItem, error) {
 	product, err := cartService.ProductServices.GetProductById(request.ProductID)
 	if err != nil {
-		return nil, err
+		return nil, utils.MappingError(err)
 	}
 
 	result, err := cartService.CartItemRepositories.CreateOrUpdateCartItem(
@@ -60,7 +58,7 @@ func (cartService *CartItemServiceImpl) CreateOrUpdateCartItem(request *request.
 	)
 
 	if err != nil {
-		return nil, cartService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
 
 	return cartService.loadRes(result), nil
@@ -69,7 +67,7 @@ func (cartService *CartItemServiceImpl) CreateOrUpdateCartItem(request *request.
 func (cartService *CartItemServiceImpl) GetAllUserCartItem(userID int64) ([]*response.ResCartItem, error) {
 	results, err := cartService.CartItemRepositories.GetAllUserCartItem(cartService.DB, userID)
 	if err != nil {
-		return nil, cartService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
 
 	items := []*response.ResCartItem{}
@@ -84,7 +82,7 @@ func (cartService *CartItemServiceImpl) DeleteCartItemsByIDs(cartIDs []int64, us
 
 	cartExist, err := cartService.CartItemRepositories.GetAllUserCartItem(cartService.DB, userID)
 	if err != nil {
-		return cartService.handleError(err)
+		return utils.MappingError(err)
 	}
 
 	cartIDexist := make(map[int64]bool)
@@ -94,12 +92,12 @@ func (cartService *CartItemServiceImpl) DeleteCartItemsByIDs(cartIDs []int64, us
 
 	for _, cartID := range cartIDs {
 		if !cartIDexist[cartID] {
-			return exceptions.NewError("", fmt.Sprintf("cart id %d not exsist", cartID), http.StatusBadRequest)
+			return exceptions.NewError(exceptions.KindNotFound, fmt.Sprintf("cart id %d not exsist", cartID), nil)
 		}
 	}
 
 	if err := cartService.CartItemRepositories.DeleteCartItemsByIDs(cartService.DB, cartIDs, userID); err != nil {
-		return cartService.handleError(err)
+		return utils.MappingError(err)
 	}
 
 	return nil
@@ -109,7 +107,7 @@ func (cartService *CartItemServiceImpl) GetCartItemByProductUser(productID int64
 
 	result, err := cartService.CartItemRepositories.GetCartItemByProductUser(cartService.DB, productID, userID)
 	if err != nil {
-		return nil, cartService.handleError(err)
+		return nil, utils.MappingError(err)
 	}
 
 	return cartService.loadRes(result), nil

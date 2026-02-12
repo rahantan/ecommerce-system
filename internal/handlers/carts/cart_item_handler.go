@@ -5,7 +5,6 @@ import (
 	"ecommerce-system/internal/dto/response"
 	"ecommerce-system/internal/exceptions"
 	cartitemsservices "ecommerce-system/internal/services/carts"
-	"ecommerce-system/internal/utils"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -22,18 +21,23 @@ func NewCartItemHandler(cartService cartitemsservices.CartItemServices, v *valid
 		Validate:         v,
 	}
 }
-func (cartHandler *CartItemHandlerImpl) withMessage(err error, msg string) error {
-	return utils.WithMessage(err, msg)
-}
-func (cartHandler *CartItemHandlerImpl) GetAllUserCartItem(ctx *fiber.Ctx) error {
+func (cartHandler *CartItemHandlerImpl) getUserData(ctx *fiber.Ctx) (*response.ResUser, error) {
 	user, ok := ctx.Locals("user").(response.ResUser)
 	if !ok {
-		return cartHandler.withMessage(exceptions.ErrCustomUnauthorized, "failed to get cart items")
+		return nil, exceptions.ErrCustomUnauthorized
+	}
+	return &user, nil
+}
+
+func (cartHandler *CartItemHandlerImpl) GetAllUserCartItem(ctx *fiber.Ctx) error {
+	user, err := cartHandler.getUserData(ctx)
+	if err != nil {
+		return err
 	}
 
 	result, err := cartHandler.CartItemServices.GetAllUserCartItem(user.ID)
 	if err != nil {
-		return cartHandler.withMessage(err, "failed to get cart items")
+		return err
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
@@ -44,24 +48,25 @@ func (cartHandler *CartItemHandlerImpl) GetAllUserCartItem(ctx *fiber.Ctx) error
 		},
 	})
 }
+
 func (cartHandler *CartItemHandlerImpl) AddCartItem(ctx *fiber.Ctx) error {
-	user, ok := ctx.Locals("user").(response.ResUser)
-	if !ok {
-		return cartHandler.withMessage(exceptions.ErrCustomUnauthorized, "failed to add cart item")
+	user, err := cartHandler.getUserData(ctx)
+	if err != nil {
+		return err
 	}
 
 	var body request.ReqCreateOrUpdateCartItem
 	if err := ctx.BodyParser(&body); err != nil {
-		return cartHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to add cart item")
+		return exceptions.ErrCustomInvalidPayload
 	}
 
 	if err := cartHandler.Validate.Struct(&body); err != nil {
-		return cartHandler.withMessage(exceptions.ValidationError(err), "failed to add cart item")
+		return exceptions.ValidationError(err)
 	}
 
 	result, err := cartHandler.CartItemServices.CreateOrUpdateCartItem(&body, user.ID)
 	if err != nil {
-		return cartHandler.withMessage(err, "failed to add cart item")
+		return err
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
@@ -74,21 +79,23 @@ func (cartHandler *CartItemHandlerImpl) AddCartItem(ctx *fiber.Ctx) error {
 }
 
 func (cartHandler *CartItemHandlerImpl) DeleteCartItemsByIDs(ctx *fiber.Ctx) error {
-	user, ok := ctx.Locals("user").(response.ResUser)
-	if !ok {
-		return cartHandler.withMessage(exceptions.ErrCustomUnauthorized, "failed to delete cart item")
+	user, err := cartHandler.getUserData(ctx)
+	if err != nil {
+		return err
 	}
+
 	var body request.ReqDeleteCartItem
+
 	if err := ctx.BodyParser(&body); err != nil {
-		return cartHandler.withMessage(exceptions.ErrCustomInvalidPayload, "failed to delete cart item")
+		return exceptions.ErrCustomInvalidPayload
 	}
 
 	if err := cartHandler.Validate.Struct(&body); err != nil {
-		return cartHandler.withMessage(exceptions.ValidationError(err), "failed to delete cart item")
+		return exceptions.ValidationError(err)
 	}
 
 	if err := cartHandler.CartItemServices.DeleteCartItemsByIDs(body.CartIDs, user.ID); err != nil {
-		return cartHandler.withMessage(err, "failed to delete cart item")
+		return err
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{

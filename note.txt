@@ -14,3 +14,83 @@ golang.org/x/crypto/bcrypt
 github.com/go-playground/validator/v10
 
 go get -u github.com/midtrans/midtrans-go
+
+
+
+
+
+
+ecommerce-app/
+│
+├── cmd/
+│   └── server/
+│       └── main.go
+│
+├── config/
+│   ├── config.go
+│   ├── database.go
+│   └── midtrans.go
+│
+├── internal/
+│
+│   ├── domain/                # Pure business entity & interface
+│   │   ├── user.go
+│   │   ├── product.go
+│   │   ├── order.go
+│   │   ├── cart.go
+│   │   ├── repository.go
+│   │   └── payment.go         # PaymentGateway interface
+│   │
+│   ├── usecase/               # Business logic
+│   │   ├── user_usecase.go
+│   │   ├── product_usecase.go
+│   │   ├── order_usecase.go
+│   │   └── cart_usecase.go
+│   │
+│   ├── repository/            # DB implementation (GORM)
+│   │   ├── user_repository.go
+│   │   ├── product_repository.go
+│   │   ├── order_repository.go
+│   │   └── cart_repository.go
+│   │
+│   ├── delivery/              # HTTP layer (Fiber)
+│   │   ├── handler/
+│   │   │   ├── user_handler.go
+│   │   │   ├── product_handler.go
+│   │   │   ├── order_handler.go
+│   │   │   └── cart_handler.go
+│   │   │
+│   │   ├── middleware/
+│   │   │   ├── auth.go
+│   │   │   └── logger.go
+│   │   │
+│   │   └── router.go
+│   │
+│   ├── infrastructure/        # External services
+│   │   ├── payment/
+│   │   │   └── midtrans.go
+│   │   │
+│   │   ├── redis/
+│   │   │   └── redis.go
+│   │   │
+│   │   ├── jwt/
+│   │   │   └── jwt_service.go
+│   │   │
+│   │   └── logger/
+│   │       └── logrus.go
+│   │
+│   ├── pkg/                   # Shared utilities
+│   │   ├── response.go
+│   │   ├── errors.go
+│   │   └── pagination.go
+│   │
+│   └── bootstrap/             # Dependency injection
+│       └── app.go
+│
+├── migrations/
+│
+├── docker/
+│   └── docker-compose.yml
+│
+├── go.mod
+└── README.md
