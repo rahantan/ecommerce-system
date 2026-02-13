@@ -31,7 +31,6 @@ type Config struct {
 func LoadConfig() *Config {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println("env file not found, using system env")
-		panic(err.Error())
 	}
 	return &Config{
 		Database: Database{
