@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type ProductRepositories interface {
+type ProductRepository interface {
 	GetAllProduct(db *gorm.DB) ([]*model.ProductModel, error)
 	GetAllProductByIDs(db *gorm.DB, productIDs []int64) ([]*model.ProductModel, error)
 	UpdateProductById(db *gorm.DB, product *model.ProductModel) (*model.ProductModel, error)
@@ -20,14 +20,14 @@ type ProductRepositories interface {
 	UpdateProductStockByID(db *gorm.DB, product []*model.ProductModel) error
 }
 
-type ProductServices interface {
+type ProductUseCase interface {
 	GetProductById(productID int64) (*response.ResProduct, error)
 	GetAllProduct() ([]*response.ResProduct, error)
 	CreateProduct(request *request.ReqCreateProduct) (*response.ResProduct, error)
 	UpdateProductById(request *request.ReqUpdateProduct, productID int64) (*response.ResProduct, error)
 }
 
-type ProductHandlers interface {
+type ProductHandler interface {
 	CreateProduct(ctx *fiber.Ctx) error
 	GetAllProduct(ctx *fiber.Ctx) error
 	UpdateProductById(ctx *fiber.Ctx) error

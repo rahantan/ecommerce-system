@@ -9,14 +9,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type CategoryRepositories interface {
+type CategoryRepository interface {
 	GetCategoryById(db *gorm.DB, categoryID int64) (*model.CategoryModel, error)
 	GetAllCategory(db *gorm.DB) ([]*model.CategoryModel, error)
 	UpdateCategoryById(db *gorm.DB, category *model.CategoryModel) (*model.CategoryModel, error)
 	CreateCategory(db *gorm.DB, category *model.CategoryModel) (*model.CategoryModel, error)
 }
 
-type CategoryServices interface {
+type CategoryUseCase interface {
 	GetCategoryById(id int64) (*response.ResCategory, error)
 
 	GetAllCategory() ([]*response.ResCategory, error)
@@ -24,7 +24,7 @@ type CategoryServices interface {
 	UpdateCategory(request *request.ReqUpdateCategory, categoryID int64) (*response.ResCategory, error)
 }
 
-type CategoryHandlers interface {
+type CategoryHandler interface {
 	CreateCategory(ctx *fiber.Ctx) error
 	GetAllCategory(ctx *fiber.Ctx) error
 	UpdateCategoryById(ctx *fiber.Ctx) error

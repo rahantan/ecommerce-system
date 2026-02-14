@@ -16,6 +16,7 @@ var (
 	ErrCartItemNotFound = errors.New("cart item not found")
 	ErrRoleNotFound     = errors.New("role not found")
 	ErrAddressNotFound  = errors.New("address not found")
+	ErrOrderNotFound    = errors.New("order not found")
 	ErrCheckOutNotFound = errors.New("checkout not found")
 )
 
@@ -29,7 +30,9 @@ func getMysqlErr(err error, mysqlCode uint16) bool {
 func IsDuplicateKeyError(err error) bool {
 	return getMysqlErr(err, 1062)
 }
-
+func ForeignKeyErr(err error) bool {
+	return getMysqlErr(err, 1452)
+}
 func IsInternalErrMysql(err error) bool {
 	MySQLErrorMap := map[uint16]string{
 		//  Unique & Primary
@@ -61,8 +64,4 @@ func IsInternalErrMysql(err error) bool {
 		return MySQLErrorMap[mysqlErr.Number] != ""
 	}
 	return false
-}
-
-func ForeignKeyErr(err error) bool {
-	return getMysqlErr(err, 1452)
 }

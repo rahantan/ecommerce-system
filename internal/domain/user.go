@@ -9,18 +9,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserRepositories interface {
+type UserRepository interface {
 	GetUserByEmail(db *gorm.DB, email string) (*model.UserModel, error)
 	GetAllUser(db *gorm.DB) ([]*model.UserModel, error)
 	CreateUser(db *gorm.DB, user *model.UserModel) (*model.UserModel, error)
 	UpdateUser(db *gorm.DB, user *model.UserModel) (*model.UserModel, error)
 }
 
-type UserServices interface {
+type UserUseCase interface {
 	Login(req *request.ReqLogin) (*response.ResUser, error)
 	Register(req *request.ReqCreateUser) (*response.ResUser, error)
 }
-type AuthHandlers interface {
+type AuthHandler interface {
 	Logout(ctx *fiber.Ctx) error
 	Login(ctx *fiber.Ctx) error
 	Register(ctx *fiber.Ctx) error

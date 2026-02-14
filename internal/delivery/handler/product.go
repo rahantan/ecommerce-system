@@ -13,20 +13,20 @@ import (
 )
 
 type ProductHandlerImpl struct {
-	domain.ProductServices
+	domain.ProductUseCase
 	*validator.Validate
 }
 
-func NewProductHandler(product domain.ProductServices, v *validator.Validate) domain.ProductHandlers {
+func NewProductHandler(product domain.ProductUseCase, v *validator.Validate) domain.ProductHandler {
 	return &ProductHandlerImpl{
-		ProductServices: product,
-		Validate:        v,
+		ProductUseCase: product,
+		Validate:       v,
 	}
 }
 
 func (productHandler *ProductHandlerImpl) GetAllProduct(ctx *fiber.Ctx) error {
 
-	result, err := productHandler.ProductServices.GetAllProduct()
+	result, err := productHandler.ProductUseCase.GetAllProduct()
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (productHandler *ProductHandlerImpl) GetProductById(ctx *fiber.Ctx) error {
 		return pkg.ErrCustomInvalidProductId
 	}
 
-	result, err := productHandler.ProductServices.GetProductById(int64(paramProductId))
+	result, err := productHandler.ProductUseCase.GetProductById(int64(paramProductId))
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (productHandler *ProductHandlerImpl) CreateProduct(ctx *fiber.Ctx) error {
 		return pkg.ValidationError(err)
 	}
 
-	result, err := productHandler.ProductServices.CreateProduct(&body)
+	result, err := productHandler.ProductUseCase.CreateProduct(&body)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (productHandler *ProductHandlerImpl) UpdateProductById(ctx *fiber.Ctx) erro
 		return pkg.ValidationError(err)
 	}
 
-	result, err := productHandler.ProductServices.UpdateProductById(&body, int64(productId))
+	result, err := productHandler.ProductUseCase.UpdateProductById(&body, int64(productId))
 	if err != nil {
 		return err
 	}

@@ -13,14 +13,14 @@ import (
 )
 
 type AddressHandlerImpl struct {
-	domain.AddressServices
+	domain.AddressUseCase
 	*validator.Validate
 }
 
-func NewAddressHandler(address domain.AddressServices, v *validator.Validate) domain.AddressHandlers {
+func NewAddressHandler(address domain.AddressUseCase, v *validator.Validate) domain.AddressHandler {
 	return &AddressHandlerImpl{
-		AddressServices: address,
-		Validate:        v,
+		AddressUseCase: address,
+		Validate:       v,
 	}
 }
 func (addressHandler *AddressHandlerImpl) getUserData(ctx *fiber.Ctx) (*response.ResUser, error) {
@@ -48,7 +48,7 @@ func (addressHandler *AddressHandlerImpl) CreateAddress(ctx *fiber.Ctx) error {
 		return pkg.ValidationError(err)
 	}
 
-	result, err := addressHandler.AddressServices.CreateAddress(&body, user.ID)
+	result, err := addressHandler.AddressUseCase.CreateAddress(&body, user.ID)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (addressHandler *AddressHandlerImpl) GetAllAddress(ctx *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	result, err := addressHandler.AddressServices.GetAllAddress(user.ID)
+	result, err := addressHandler.AddressUseCase.GetAllAddress(user.ID)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (addressHandler *AddressHandlerImpl) UpdateAddressByUserId(ctx *fiber.Ctx) 
 		return pkg.ValidationError(err)
 	}
 
-	result, err := addressHandler.AddressServices.UpdateAddressByUserId(&body, int64(addressId), user.ID)
+	result, err := addressHandler.AddressUseCase.UpdateAddressByUserId(&body, int64(addressId), user.ID)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (addressHandler *AddressHandlerImpl) GetUserActiveAddress(ctx *fiber.Ctx) e
 		return err
 	}
 
-	result, err := addressHandler.AddressServices.GetUserAddressActive(user.ID)
+	result, err := addressHandler.AddressUseCase.GetUserAddressActive(user.ID)
 	if err != nil {
 		return err
 	}

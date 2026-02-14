@@ -12,7 +12,7 @@ import (
 type CartItemRepositoryImpl struct {
 }
 
-func NewCartItemRepository() domain.CartItemRepositories {
+func NewCartRepository() domain.CartRepository {
 	return &CartItemRepositoryImpl{}
 }
 

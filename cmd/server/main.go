@@ -5,6 +5,7 @@ import (
 	"ecommerce-system/internal/delivery"
 	"ecommerce-system/internal/delivery/handler"
 	"ecommerce-system/internal/delivery/middleware"
+	"ecommerce-system/internal/infra/midtrans"
 	"ecommerce-system/internal/repository"
 	"ecommerce-system/internal/usecase"
 	"fmt"
@@ -18,6 +19,8 @@ import (
 func main() {
 	config := config.LoadConfig()
 	connection := config.ConnectionDb()
+	config.InitMidtrans()
+
 	validate := validator.New()
 	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
 		tag := fld.Tag.Get("json")
@@ -31,37 +34,39 @@ func main() {
 		ErrorHandler: middleware.ErrorHandler,
 	})
 
-	userRepository := repository.NewUserRepository(connection)
-	productRepository := repository.NewProductRepository(connection)
-	categoryRepository := repository.NewCategoryRepository(connection)
-	addressRepository := repository.NewAddressRepository(connection)
-	cartRepository := repository.NewCartItemRepository()
+	userRepository := repository.NewUserRepository()
+	productRepository := repository.NewProductRepository()
+	categoryRepository := repository.NewCategoryRepository()
+	addressRepository := repository.NewAddressRepository()
+	cartRepository := repository.NewCartRepository()
 	orderRepo := repository.NewOrderRepository()
-	checkOutRepo := repository.NewCheckoutSession()
+	checkOutRepo := repository.NewCheckOutRepository()
 
-	userService := usecase.NewUserService(userRepository, connection)
-	addressService := usecase.NewAddressService(addressRepository, connection)
-	productService := usecase.NewProductService(productRepository, connection)
-	categoryService := usecase.NewCategoryService(categoryRepository, connection)
-	cartService := usecase.NewCartItemService(cartRepository, productService, connection)
+	userUseCase := usecase.NewUserUseCase(userRepository, connection)
+	addressUseCase := usecase.NewAddressUseCase(addressRepository, connection)
+	productUseCase := usecase.NewProductUseCase(productRepository, connection)
+	categoryUseCase := usecase.NewCategoryUseCase(categoryRepository, connection)
+	cartUseCase := usecase.NewCartUseCase(cartRepository, productUseCase, connection)
 
-	orderService := usecase.NewOrderService(checkOutRepo, orderRepo, cartRepository, productRepository, addressRepository, connection)
+	midtransPayment := midtrans.NewMidtransGateWay(config.Client)
 
-	authHandler := handler.NewAuthController(userService, validate, config)
-	addressHandler := handler.NewAddressHandler(addressService, validate)
-	productHandler := handler.NewProductHandler(productService, validate)
-	categoryHandler := handler.NewCategoryHandler(categoryService, validate)
-	cartHandler := handler.NewCartItemHandler(cartService, validate)
-	orderHandler := handler.NewOrderHandler(orderService, validate)
+	orderUseCase := usecase.NewOrderUseCase(checkOutRepo, orderRepo, cartRepository, productRepository, addressRepository, midtransPayment, connection)
+
+	authHandler := handler.NewAuthController(userUseCase, validate, config)
+	addressHandler := handler.NewAddressHandler(addressUseCase, validate)
+	productHandler := handler.NewProductHandler(productUseCase, validate)
+	categoryHandler := handler.NewCategoryHandler(categoryUseCase, validate)
+	cartHandler := handler.NewCartItemHandler(cartUseCase, validate)
+	orderHandler := handler.NewOrderHandler(orderUseCase, config.Midtrans, validate)
 
 	ctrl := &delivery.Handlers{
-		Config:           config,
-		AuthHandlers:     authHandler,
-		CategoryHandlers: categoryHandler,
-		ProductHandlers:  productHandler,
-		AddressHandlers:  addressHandler,
-		CartItemHandlers: cartHandler,
-		OrderHandlers:    orderHandler,
+		Config:          config,
+		AuthHandler:     authHandler,
+		CategoryHandler: categoryHandler,
+		ProductHandler:  productHandler,
+		AddressHandler:  addressHandler,
+		CartHandler:     cartHandler,
+		OrderHandler:    orderHandler,
 	}
 	delivery.NewRoute(app, ctrl)
 	if err := app.Listen(fmt.Sprintf("%s:%s",

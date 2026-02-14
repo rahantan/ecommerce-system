@@ -11,12 +11,13 @@ import (
 
 type Handlers struct {
 	*config.Config
-	domain.AuthHandlers
-	domain.CategoryHandlers
-	domain.ProductHandlers
-	domain.AddressHandlers
-	domain.CartItemHandlers
-	domain.OrderHandlers
+	domain.AuthHandler
+	domain.CategoryHandler
+	domain.ProductHandler
+	domain.AddressHandler
+	domain.CartHandler
+	domain.OrderHandler
+	domain.MidtransGateWay
 }
 
 func NewRoute(app *fiber.App, handler *Handlers) {
@@ -24,12 +25,14 @@ func NewRoute(app *fiber.App, handler *Handlers) {
 	limit := limiter.New(middleware.Limiter())
 
 	api := app.Group("/api")
+	webHook := api.Group("/webhook")
+	handler.WebHook(webHook)
 
 	public := api.Group("/public", limit)
 	handler.Public(public)
 
 	private := api.Group("/private", middleware.JwtValidationToken(handler.Config.Jwt.SecretKey), limit)
-	private.Delete("/logout", handler.AuthHandlers.Logout)
+	private.Delete("/logout", handler.AuthHandler.Logout)
 
 	admin := private.Group("/admin", middleware.Authorization(1))
 	handler.Admin(admin)
@@ -38,39 +41,40 @@ func NewRoute(app *fiber.App, handler *Handlers) {
 	handler.Customers(customers)
 
 }
-
+func (route *Handlers) WebHook(webHook fiber.Router) {
+	webHook.Post("/midtrans/notif", route.OrderHandler.WebHookMidtransNotif)
+}
 func (route *Handlers) Public(public fiber.Router) {
 	auth := public.Group("/auth")
-	auth.Post("/login", route.AuthHandlers.Login)
-	auth.Post("/register", route.AuthHandlers.Register)
+	auth.Post("/login", route.AuthHandler.Login)
+	auth.Post("/register", route.AuthHandler.Register)
 
-	public.Get("/products/:productId", route.ProductHandlers.GetProductById)
-	public.Get("/products", route.ProductHandlers.GetAllProduct)
+	public.Get("/products/:productId", route.ProductHandler.GetProductById)
+	public.Get("/products", route.ProductHandler.GetAllProduct)
 
-	public.Get("/categories/:categoryId", route.CategoryHandlers.GetCategoryById)
-	public.Get("/categories", route.CategoryHandlers.GetAllCategory)
+	public.Get("/categories/:categoryId", route.CategoryHandler.GetCategoryById)
+	public.Get("/categories", route.CategoryHandler.GetAllCategory)
 }
 
 func (route *Handlers) Admin(admin fiber.Router) {
-	admin.Put("/products/:productId", route.ProductHandlers.UpdateProductById)
-	admin.Post("/products", route.ProductHandlers.CreateProduct)
+	admin.Put("/products/:productId", route.ProductHandler.UpdateProductById)
+	admin.Post("/products", route.ProductHandler.CreateProduct)
 
-	admin.Put("/categories/:categoryId", route.CategoryHandlers.UpdateCategoryById)
-	admin.Post("/categories", route.CategoryHandlers.CreateCategory)
-
+	admin.Put("/categories/:categoryId", route.CategoryHandler.UpdateCategoryById)
+	admin.Post("/categories", route.CategoryHandler.CreateCategory)
 }
 
 func (route *Handlers) Customers(customer fiber.Router) {
-	customer.Get("/addresses/active", route.AddressHandlers.GetUserActiveAddress)
-	customer.Get("/addresses", route.AddressHandlers.GetAllAddress)
-	customer.Post("/addresses", route.AddressHandlers.CreateAddress)
-	customer.Put("/addresses/:addressId", route.AddressHandlers.UpdateAddressByUserId)
+	customer.Get("/addresses/active", route.AddressHandler.GetUserActiveAddress)
+	customer.Get("/addresses", route.AddressHandler.GetAllAddress)
+	customer.Post("/addresses", route.AddressHandler.CreateAddress)
+	customer.Put("/addresses/:addressId", route.AddressHandler.UpdateAddressByUserId)
 
-	customer.Post("/carts", route.CartItemHandlers.AddCartItem)
-	customer.Get("/carts", route.CartItemHandlers.GetAllUserCartItem)
-	customer.Delete("/carts", route.CartItemHandlers.DeleteCartItemsByIDs)
+	customer.Post("/carts", route.CartHandler.AddCartItem)
+	customer.Get("/carts", route.CartHandler.GetAllUserCartItem)
+	customer.Delete("/carts", route.CartHandler.DeleteCartItemsByIDs)
 
-	customer.Get("/order/checkout", route.OrderHandlers.GetLastDraftCheckOut)
-	customer.Post("/order/checkout", route.OrderHandlers.CheckOut)
-	customer.Post("/order/confirm", route.OrderHandlers.CheckOutConfirm)
+	customer.Get("/order/checkout", route.OrderHandler.GetLastDraftCheckOut)
+	customer.Post("/order/checkout", route.OrderHandler.CheckOut)
+	customer.Post("/order/confirm", route.OrderHandler.CheckOutConfirm)
 }

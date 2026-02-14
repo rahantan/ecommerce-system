@@ -16,6 +16,8 @@ github.com/go-playground/validator/v10
 go get -u github.com/midtrans/midtrans-go
 
 
+go get github.com/midtrans/midtrans-go
+go get github.com/midtrans/midtrans-go/snap
 
 
 

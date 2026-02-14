@@ -11,14 +11,14 @@ import (
 )
 
 type CartItemHandlerImpl struct {
-	domain.CartItemServices
+	domain.CartUseCase
 	*validator.Validate
 }
 
-func NewCartItemHandler(cartService domain.CartItemServices, v *validator.Validate) domain.CartItemHandlers {
+func NewCartItemHandler(cartService domain.CartUseCase, v *validator.Validate) domain.CartHandler {
 	return &CartItemHandlerImpl{
-		CartItemServices: cartService,
-		Validate:         v,
+		CartUseCase: cartService,
+		Validate:    v,
 	}
 }
 func (cartHandler *CartItemHandlerImpl) getUserData(ctx *fiber.Ctx) (*response.ResUser, error) {
@@ -35,7 +35,7 @@ func (cartHandler *CartItemHandlerImpl) GetAllUserCartItem(ctx *fiber.Ctx) error
 		return err
 	}
 
-	result, err := cartHandler.CartItemServices.GetAllUserCartItem(user.ID)
+	result, err := cartHandler.CartUseCase.GetAllUserCartItem(user.ID)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (cartHandler *CartItemHandlerImpl) AddCartItem(ctx *fiber.Ctx) error {
 		return pkg.ValidationError(err)
 	}
 
-	result, err := cartHandler.CartItemServices.CreateOrUpdateCartItem(&body, user.ID)
+	result, err := cartHandler.CartUseCase.CreateOrUpdateCartItem(&body, user.ID)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (cartHandler *CartItemHandlerImpl) DeleteCartItemsByIDs(ctx *fiber.Ctx) err
 		return pkg.ValidationError(err)
 	}
 
-	if err := cartHandler.CartItemServices.DeleteCartItemsByIDs(body.CartIDs, user.ID); err != nil {
+	if err := cartHandler.CartUseCase.DeleteCartItemsByIDs(body.CartIDs, user.ID); err != nil {
 		return err
 	}
 

@@ -1,10 +1,15 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/midtrans/midtrans-go"
+	"github.com/midtrans/midtrans-go/snap"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 type Database struct {
@@ -22,10 +27,17 @@ type Server struct {
 type Jwt struct {
 	SecretKey string
 }
+
+type Midtrans struct {
+	ServerKey string
+	Env       string
+	snap.Client
+}
 type Config struct {
 	Server
 	Database
 	Jwt
+	Midtrans
 }
 
 func LoadConfig() *Config {
@@ -48,5 +60,35 @@ func LoadConfig() *Config {
 		Jwt: Jwt{
 			SecretKey: os.Getenv("JWT_SECRET_KEY"),
 		},
+		Midtrans: Midtrans{
+			ServerKey: os.Getenv("MIDTRANS_SERVER_KEY"),
+			Env:       os.Getenv("MIDTRANS_ENV"),
+		},
 	}
+}
+func (conf *Config) ConnectionDb() *gorm.DB {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		conf.Database.User,
+		conf.Database.Password,
+		conf.Database.Host,
+		conf.Database.Port,
+		conf.Database.DBName,
+	)
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	return db
+}
+
+func (conf *Config) InitMidtrans() {
+	env := midtrans.Sandbox
+
+	if conf.Midtrans.Env == "production" {
+		env = midtrans.Production
+	}
+
+	conf.Midtrans.Client.New(conf.Midtrans.ServerKey, env)
 }

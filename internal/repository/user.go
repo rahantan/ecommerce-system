@@ -8,13 +8,10 @@ import (
 )
 
 type UserRepositoryImpl struct {
-	*gorm.DB
 }
 
-func NewUserRepository(db *gorm.DB) domain.UserRepositories {
-	return &UserRepositoryImpl{
-		DB: db,
-	}
+func NewUserRepository() domain.UserRepository {
+	return &UserRepositoryImpl{}
 }
 
 func (userRepo *UserRepositoryImpl) checkErrMysql(err error) error {

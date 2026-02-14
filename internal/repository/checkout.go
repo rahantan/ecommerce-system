@@ -10,7 +10,7 @@ import (
 type CheckOutRepositoryImpl struct {
 }
 
-func NewCheckoutSession() domain.CheckOutRepositories {
+func NewCheckOutRepository() domain.CheckOutRepository {
 	return &CheckOutRepositoryImpl{}
 }
 func (coRepo *CheckOutRepositoryImpl) CheckOut(db *gorm.DB, checkout *model.CheckoutModel) error {

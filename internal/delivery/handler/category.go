@@ -12,14 +12,14 @@ import (
 )
 
 type CategoryHandlerImpl struct {
-	domain.CategoryServices
+	domain.CategoryUseCase
 	*validator.Validate
 }
 
-func NewCategoryHandler(category domain.CategoryServices, v *validator.Validate) domain.CategoryHandlers {
+func NewCategoryHandler(category domain.CategoryUseCase, v *validator.Validate) domain.CategoryHandler {
 	return &CategoryHandlerImpl{
-		CategoryServices: category,
-		Validate:         v,
+		CategoryUseCase: category,
+		Validate:        v,
 	}
 }
 
@@ -34,7 +34,7 @@ func (categoryHandler *CategoryHandlerImpl) CreateCategory(ctx *fiber.Ctx) error
 		return pkg.ValidationError(err)
 	}
 
-	result, err := categoryHandler.CategoryServices.CreateCategory(&body)
+	result, err := categoryHandler.CategoryUseCase.CreateCategory(&body)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (categoryHandler *CategoryHandlerImpl) CreateCategory(ctx *fiber.Ctx) error
 }
 func (categoryHandler *CategoryHandlerImpl) GetAllCategory(ctx *fiber.Ctx) error {
 
-	result, err := categoryHandler.CategoryServices.GetAllCategory()
+	result, err := categoryHandler.CategoryUseCase.GetAllCategory()
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (categoryHandler *CategoryHandlerImpl) UpdateCategoryById(ctx *fiber.Ctx) e
 		return pkg.ValidationError(err)
 	}
 
-	result, err := categoryHandler.CategoryServices.UpdateCategory(&body, int64(categoryId))
+	result, err := categoryHandler.CategoryUseCase.UpdateCategory(&body, int64(categoryId))
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (categoryHandler *CategoryHandlerImpl) GetCategoryById(ctx *fiber.Ctx) erro
 		return pkg.ErrCustomInvalidCategoryId
 	}
 
-	result, err := categoryHandler.CategoryServices.GetCategoryById(int64(paramCategId))
+	result, err := categoryHandler.CategoryUseCase.GetCategoryById(int64(paramCategId))
 	if err != nil {
 		return err
 	}

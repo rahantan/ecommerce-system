@@ -11,18 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserServiceImpl struct {
-	domain.UserRepositories
+type UserUseCaseImpl struct {
+	domain.UserRepository
 	*gorm.DB
 }
 
-func NewUserService(user domain.UserRepositories, db *gorm.DB) domain.UserServices {
-	return &UserServiceImpl{
-		UserRepositories: user,
-		DB:               db,
+func NewUserUseCase(user domain.UserRepository, db *gorm.DB) domain.UserUseCase {
+	return &UserUseCaseImpl{
+		UserRepository: user,
+		DB:             db,
 	}
 }
-func (userService *UserServiceImpl) loadUserRes(userMdl *model.UserModel) *response.ResUser {
+func (userUC *UserUseCaseImpl) loadUserRes(userMdl *model.UserModel) *response.ResUser {
 	addresses := []response.ResAddress{}
 	for _, address := range userMdl.Address {
 		addresses = append(addresses, response.ResAddress{
@@ -47,8 +47,8 @@ func (userService *UserServiceImpl) loadUserRes(userMdl *model.UserModel) *respo
 	}
 }
 
-func (userService *UserServiceImpl) Login(req *request.ReqLogin) (*response.ResUser, error) {
-	user, err := userService.UserRepositories.GetUserByEmail(userService.DB, req.Email)
+func (userUC *UserUseCaseImpl) Login(req *request.ReqLogin) (*response.ResUser, error) {
+	user, err := userUC.UserRepository.GetUserByEmail(userUC.DB, req.Email)
 	if err != nil {
 		return nil, pkg.ErrCustomLogin
 	}
@@ -57,9 +57,9 @@ func (userService *UserServiceImpl) Login(req *request.ReqLogin) (*response.ResU
 		return nil, pkg.ErrCustomLogin
 	}
 
-	return userService.loadUserRes(user), nil
+	return userUC.loadUserRes(user), nil
 }
-func (userService *UserServiceImpl) Register(request *request.ReqCreateUser) (*response.ResUser, error) {
+func (userUC *UserUseCaseImpl) Register(request *request.ReqCreateUser) (*response.ResUser, error) {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -67,7 +67,7 @@ func (userService *UserServiceImpl) Register(request *request.ReqCreateUser) (*r
 	}
 
 	request.Password = string(hash)
-	result, err := userService.UserRepositories.CreateUser(userService.DB, &model.UserModel{
+	result, err := userUC.UserRepository.CreateUser(userUC.DB, &model.UserModel{
 		Name:     request.Name,
 		Email:    request.Email,
 		Password: request.Password,
@@ -77,5 +77,5 @@ func (userService *UserServiceImpl) Register(request *request.ReqCreateUser) (*r
 	if err != nil {
 		return nil, pkg.MappingError(err)
 	}
-	return userService.loadUserRes(result), nil
+	return userUC.loadUserRes(result), nil
 }

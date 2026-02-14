@@ -5,6 +5,7 @@ import (
 	"ecommerce-system/internal/delivery/dto/request"
 	"ecommerce-system/internal/delivery/dto/response"
 	"ecommerce-system/internal/domain"
+	"ecommerce-system/internal/infra/jwt"
 	"ecommerce-system/internal/pkg"
 
 	"time"
@@ -15,16 +16,16 @@ import (
 
 type AuthHandlerImpl struct {
 	// authservices.AuthServices
-	domain.UserServices
+	domain.UserUseCase
 	*validator.Validate
 	*config.Config
 }
 
-func NewAuthController(user domain.UserServices, v *validator.Validate, c *config.Config) domain.AuthHandlers {
+func NewAuthController(user domain.UserUseCase, v *validator.Validate, c *config.Config) domain.AuthHandler {
 	return &AuthHandlerImpl{
-		UserServices: user,
-		Validate:     v,
-		Config:       c,
+		UserUseCase: user,
+		Validate:    v,
+		Config:      c,
 	}
 }
 
@@ -49,12 +50,12 @@ func (auth *AuthHandlerImpl) Login(ctx *fiber.Ctx) error {
 		return pkg.ValidationError(err)
 	}
 
-	result, err := auth.UserServices.Login(&body)
+	result, err := auth.UserUseCase.Login(&body)
 	if err != nil {
 		return err
 	}
 
-	token, err := pkg.GetToken(*result, auth.Config.Jwt.SecretKey)
+	token, err := jwt.GetToken(*result, auth.Config.Jwt.SecretKey)
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func (auth *AuthHandlerImpl) Register(ctx *fiber.Ctx) error {
 		return pkg.ValidationError(err)
 	}
 
-	result, err := auth.UserServices.Register(&body)
+	result, err := auth.UserUseCase.Register(&body)
 	if err != nil {
 		return err
 	}

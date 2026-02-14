@@ -10,7 +10,7 @@ import (
 type AddressRepositoryImpl struct {
 }
 
-func NewAddressRepository(db *gorm.DB) domain.AddressRepositories {
+func NewAddressRepository() domain.AddressRepository {
 	return &AddressRepositoryImpl{}
 }
 

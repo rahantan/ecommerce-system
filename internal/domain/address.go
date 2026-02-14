@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type AddressRepositories interface {
+type AddressRepository interface {
 	GetAddressById(db *gorm.DB, addressID int64) (*model.AddressModel, error)
 	GetUserAddressActive(db *gorm.DB, userId int64) (*model.AddressModel, error)
 	GetAllAddress(db *gorm.DB, userId int64) ([]*model.AddressModel, error)
@@ -19,14 +19,14 @@ type AddressRepositories interface {
 	DeActivate(db *gorm.DB, userID int64) error
 }
 
-type AddressServices interface {
+type AddressUseCase interface {
 	GetUserAddressActive(userId int64) (*response.ResAddress, error)
 	GetAllAddress(userid int64) ([]*response.ResAddress, error)
 	CreateAddress(request *request.ReqCreateAddress, userID int64) (*response.ResAddress, error)
 	UpdateAddressByUserId(request *request.ReqUpdateAddress, addressID int64, userID int64) (*response.ResAddress, error)
 }
 
-type AddressHandlers interface {
+type AddressHandler interface {
 	CreateAddress(ctx *fiber.Ctx) error
 	GetAllAddress(ctx *fiber.Ctx) error
 	UpdateAddressByUserId(ctx *fiber.Ctx) error

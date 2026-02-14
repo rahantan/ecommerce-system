@@ -8,13 +8,10 @@ import (
 )
 
 type CategoryRepositoryImpl struct {
-	*gorm.DB
 }
 
-func NewCategoryRepository(db *gorm.DB) domain.CategoryRepositories {
-	return &CategoryRepositoryImpl{
-		DB: db,
-	}
+func NewCategoryRepository() domain.CategoryRepository {
+	return &CategoryRepositoryImpl{}
 }
 
 func (categoryRepo *CategoryRepositoryImpl) checkErrMysql(err error) error {

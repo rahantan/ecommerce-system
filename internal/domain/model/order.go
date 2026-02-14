@@ -35,12 +35,13 @@ func (om *OrderModel) TableName() string {
 }
 
 type OrderItemModel struct {
-	ID        int64   `gorm:"column:id;primaryKey;autoIncrement"`
-	OrderID   int64   `gorm:"column:order_id"`
-	ProductID int64   `gorm:"column:product_id"`
-	Qty       int     `gorm:"column:qty"`
-	Price     float64 `gorm:"column:price"`
-	SubTotal  float64 `gorm:"column:subtotal"`
+	ID        int64        `gorm:"column:id;primaryKey;autoIncrement"`
+	OrderID   int64        `gorm:"column:order_id"`
+	ProductID int64        `gorm:"column:product_id"`
+	Qty       int          `gorm:"column:qty"`
+	Price     float64      `gorm:"column:price"`
+	SubTotal  float64      `gorm:"column:subtotal"`
+	Product   ProductModel `gorm:"foreignKey:ProductID"`
 }
 
 func (oim *OrderItemModel) TableName() string {

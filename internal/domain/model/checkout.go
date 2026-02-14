@@ -26,7 +26,7 @@ type CheckoutItemModel struct {
 	Qty        int          `gorm:"column:qty"`
 	Price      float64      `gorm:"column:price"`
 	SubTotal   float64      `gorm:"column:subtotal"`
-	CartID     int64        `gorm:"column:cart_item_id"` //required in cart
+	CartID     *int64       `gorm:"column:cart_item_id"` //required in cart
 	Product    ProductModel `gorm:"foreignKey:ProductID"`
 }
 

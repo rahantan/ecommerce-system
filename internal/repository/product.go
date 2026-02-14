@@ -10,7 +10,7 @@ import (
 type ProductRepositoryImpl struct {
 }
 
-func NewProductRepository(db *gorm.DB) domain.ProductRepositories {
+func NewProductRepository() domain.ProductRepository {
 	return &ProductRepositoryImpl{}
 }
 
