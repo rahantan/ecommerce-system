@@ -68,7 +68,7 @@ func (orderUC *OrderUseCaseImpl) GetLastDraftCheckOut(userID int64) (*response.R
 	}, nil
 }
 func (orderUC *OrderUseCaseImpl) CheckOut(req *request.ReqCheckout, userID int64) error {
-
+	var productIDs []int64
 	products, err := orderUC.getProductsWithMapping()
 	if err != nil {
 		return pkg.MappingError(err)
