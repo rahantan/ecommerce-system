@@ -6,7 +6,7 @@ import (
 
 type CheckoutModel struct {
 	ID           int64               `gorm:"column:id;primaryKey;autoIncrement"`
-	TotalPrice   float64             `gorm:"column:total_price"`
+	TotalPrice   int64               `gorm:"column:total_price"`
 	Status       string              `gorm:"column:status"`
 	Source       string              `gorm:"column:source"`
 	UserID       int64               `gorm:"column:user_id"`
@@ -24,8 +24,8 @@ type CheckoutItemModel struct {
 	CheckoutID int64        `gorm:"column:checkout_id"`
 	ProductID  int64        `gorm:"column:product_id"`
 	Qty        int          `gorm:"column:qty"`
-	Price      float64      `gorm:"column:price"`
-	SubTotal   float64      `gorm:"column:subtotal"`
+	Price      int64        `gorm:"column:price"`
+	SubTotal   int64        `gorm:"column:subtotal"`
 	CartID     *int64       `gorm:"column:cart_item_id"` //required in cart
 	Product    ProductModel `gorm:"foreignKey:ProductID"`
 }

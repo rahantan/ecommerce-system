@@ -1,0 +1,5 @@
+- pagination untuk data yang banyak dan di tampilkan
+- update stok ketika sudah bayar (done)
+- error handling untuk semua repo
+- race kondisi untuk update dan read stok sebelum order atau checkout
+- gambar pruduct belum di buat

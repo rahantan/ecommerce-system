@@ -11,12 +11,12 @@ import (
 )
 
 type OrderRepository interface {
-	CreateOrder(db *gorm.DB, order *model.OrderModel) (*model.OrderModel, error)
 	GetAllOrder(db *gorm.DB, userID int64) ([]*model.OrderModel, error)
-	GetAllOrderItem(db *gorm.DB, orderID, userID int64) ([]*model.OrderItemModel, error)
+	GetOrderDetailsByID(db *gorm.DB, userID, orderID int64) (*model.OrderModel, error)
+	GetOrderByID(db *gorm.DB, orderID int64) (*model.OrderModel, error)
+	CreateOrder(db *gorm.DB, order *model.OrderModel) (*model.OrderModel, error)
 	DeleteOrder(db *gorm.DB, orderID int64, userID int64) error
 	UpdateStatusOrder(db *gorm.DB, orderID int64, statusID int64) error
-	GetOrderByID(db *gorm.DB, orderID int64) (*model.OrderModel, error)
 }
 
 type CheckOutRepository interface {
@@ -29,12 +29,22 @@ type CheckOutRepository interface {
 type MidtransGateWay interface {
 	CreateMidtrans(order *model.OrderModel) (*snap.Response, error)
 }
+type PaymentRepository interface {
+	GetPaymentByOrderID(db *gorm.DB, orderID int64) (*model.PaymentOrderModel, error)
+	UpdateStatusPayment(db *gorm.DB, orderID int64, status string) error
+	SavePayment(db *gorm.DB, peyment *model.PaymentOrderModel) error
+}
 
 type OrderUseCase interface {
+	GetOrderDetails(userID, orderID int64) (*response.ResOrder, error)
+	GetAllOrder(userID int64) ([]response.ResOrder, error)
+	UpdateStatusOrder(orderID, statusOrder int64) error
+
 	CheckOut(req *request.ReqCheckout, userID int64) error
 	CheckOutConfirm(req *request.ReqConfirmCheckout, userID int64) (*response.ResPayment, error)
 	GetLastDraftCheckOut(userID int64) (*response.ResCheckOut, error)
-	UpdateStatusOrder(orderID, statusOrder int64) error
+
+	UpdateStatusPayment(orderID int64, statusTransaction string) error
 }
 
 type OrderHandler interface {
@@ -42,4 +52,6 @@ type OrderHandler interface {
 	CheckOutConfirm(ctx *fiber.Ctx) error
 	GetLastDraftCheckOut(ctx *fiber.Ctx) error
 	WebHookMidtransNotif(ctx *fiber.Ctx) error
+	GetAllOrder(ctx *fiber.Ctx) error
+	GetOrderDetails(ctx *fiber.Ctx) error
 }

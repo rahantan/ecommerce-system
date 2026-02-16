@@ -52,7 +52,8 @@ func (cartUC *CartItemUseCaseImpl) CreateOrUpdateCartItem(request *request.ReqCr
 			UserID:    userID,
 			ProductID: request.ProductID,
 			Qty:       request.Qty,
-			SubTotal:  (float64(request.Qty * int(product.Price))),
+			SubTotal:  int64(request.Qty) * product.Price,
+			Price:     product.Price,
 		},
 	)
 

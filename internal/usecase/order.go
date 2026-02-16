@@ -6,10 +6,8 @@ import (
 	"ecommerce-system/internal/domain"
 	"ecommerce-system/internal/domain/model"
 	"ecommerce-system/internal/pkg"
-
 	"fmt"
 
-	"github.com/midtrans/midtrans-go/snap"
 	"gorm.io/gorm"
 )
 
@@ -21,33 +19,132 @@ type OrderUseCaseImpl struct {
 	domain.ProductRepository
 	domain.AddressRepository
 	domain.MidtransGateWay
+	domain.PaymentRepository
 }
 
 func NewOrderUseCase(
 	coRepo domain.CheckOutRepository,
 	orderRepo domain.OrderRepository,
-	cartrepo domain.CartRepository,
+	cartRepo domain.CartRepository,
 	productRepo domain.ProductRepository,
 	addressRepo domain.AddressRepository,
-	mdGateWay domain.MidtransGateWay,
+	paymentRepo domain.PaymentRepository,
+	mdGateway domain.MidtransGateWay,
 	db *gorm.DB,
 ) domain.OrderUseCase {
 	return &OrderUseCaseImpl{
 		CheckOutRepository: coRepo,
 		OrderRepository:    orderRepo,
 		ProductRepository:  productRepo,
-		CartRepository:     cartrepo,
+		CartRepository:     cartRepo,
 		AddressRepository:  addressRepo,
+		PaymentRepository:  paymentRepo,
 		DB:                 db,
-		MidtransGateWay:    mdGateWay,
+		MidtransGateWay:    mdGateway,
 	}
 }
+
+func (orderUC *OrderUseCaseImpl) UpdateStatusOrder(orderID, statusOrder int64) error {
+
+	if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, statusOrder); err != nil {
+		return pkg.MappingError(err)
+	}
+
+	return nil
+}
+
+func (orderUC *OrderUseCaseImpl) GetOrderDetails(userID, orderID int64) (*response.ResOrder, error) {
+	orderResult, err := orderUC.OrderRepository.GetOrderDetailsByID(orderUC.DB, userID, orderID)
+	if err != nil {
+		return nil, pkg.MappingError(err)
+	}
+
+	var items []response.ResOrderItem
+	for _, item := range orderResult.OrderItem {
+		items = append(items, response.ResOrderItem{
+			ID:       item.ID,
+			Qty:      item.Qty,
+			Price:    item.Price,
+			SubTotal: item.SubTotal,
+			Product: response.ResOrderProduct{
+				ID:   item.Product.ID,
+				Name: item.Product.Name,
+			},
+		})
+	}
+	order := response.ResOrder{
+		ID:         orderResult.ID,
+		TotalPrice: orderResult.TotalPrice,
+		CreatedAt:  orderResult.CreatedAt.Format("2006-01-02 15:04:05"),
+		Items:      &items,
+		TotalItems: len(orderResult.OrderItem),
+		Status: response.ResOrderStatus{
+			ID:   orderResult.OrderStatus.ID,
+			Name: orderResult.OrderStatus.Name,
+		},
+	}
+
+	return &order, nil
+}
+func (orderUC *OrderUseCaseImpl) GetAllOrder(userID int64) ([]response.ResOrder, error) {
+	resultOrder, err := orderUC.OrderRepository.GetAllOrder(orderUC.DB, userID)
+	if err != nil {
+		return nil, pkg.MappingError(err)
+	}
+
+	var orders []response.ResOrder
+
+	for _, order := range resultOrder {
+		orders = append(orders, response.ResOrder{
+			ID: order.ID,
+			Status: response.ResOrderStatus{
+				ID:   order.OrderStatus.ID,
+				Name: order.OrderStatus.Name,
+			},
+			TotalItems: len(order.OrderItem),
+			TotalPrice: order.TotalPrice,
+			CreatedAt:  order.CreatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	return orders, nil
+}
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 func (orderUC *OrderUseCaseImpl) GetLastDraftCheckOut(userID int64) (*response.ResCheckOut, error) {
 	result, err := orderUC.CheckOutRepository.GetLastDraftCheckOut(orderUC.DB, userID)
 	if err != nil {
 		return nil, pkg.MappingError(err)
 	}
+	fmt.Println("ITEMS: ", result.CheckoutItem)
 
 	var items []response.ResItem
 	for _, item := range result.CheckoutItem {
@@ -67,147 +164,146 @@ func (orderUC *OrderUseCaseImpl) GetLastDraftCheckOut(userID int64) (*response.R
 		CreatedAt:  result.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
+
+////////////////////////////////////////////////////////////
+//////////////////// CHECKOUT FLOW /////////////////////////
+////////////////////////////////////////////////////////////
+
 func (orderUC *OrderUseCaseImpl) CheckOut(req *request.ReqCheckout, userID int64) error {
-	var productIDs []int64
-	products, err := orderUC.getProductsWithMapping()
-	if err != nil {
-		return pkg.MappingError(err)
-	}
-
-	var checkOutItems []model.CheckoutItemModel
-
+	var (
+		total int64
+		items []model.CheckoutItemModel
+		err   error
+	)
 	switch req.Source {
 	case "cart":
-		items, err := orderUC.getItemByCarts(products, req.CartIDs, userID)
-		if err != nil {
-			return err
-		}
-
-		checkOutItems = items
+		total, items, err = orderUC.cartItems(req.CartIDs, userID)
 
 	case "direct":
-		items, err := orderUC.mappingItems(products, req.Items)
-		if err != nil {
-			return err
-		}
-		checkOutItems = items
+		total, items, err = orderUC.directItems(req.Items)
+
+	default:
+		return pkg.NewError(pkg.KindBadRequest, "invalid checkout source", nil)
 	}
 
-	totalPrice, err := orderUC.validationProduct(products, checkOutItems)
 	if err != nil {
 		return err
 	}
 
-	if err := orderUC.checkOutTx(req, checkOutItems, totalPrice, userID); err != nil {
-		return err
-	}
-
-	return nil
+	return orderUC.createDraftCheckoutTx(req, items, total, userID)
 }
+
 func (orderUC *OrderUseCaseImpl) CheckOutConfirm(req *request.ReqConfirmCheckout, userID int64) (*response.ResPayment, error) {
 
-	products, err := orderUC.getProductsWithMapping()
-	if err != nil {
-		return nil, err
-	}
-
-	draftCheckOut, err := orderUC.CheckOutRepository.GetLastDraftCheckOut(orderUC.DB, userID)
+	draftCheckout, err := orderUC.CheckOutRepository.GetLastDraftCheckOut(orderUC.DB, userID)
 	if err != nil {
 		return nil, pkg.MappingError(err)
 	}
 
-	_, err = orderUC.validationProduct(products, draftCheckOut.CheckoutItem)
+	productIDs := make([]int64, 0, len(draftCheckout.CheckoutItem))
+	for _, item := range draftCheckout.CheckoutItem {
+		productIDs = append(productIDs, item.ProductID)
+	}
+
+	products, err := orderUC.getProductsMap(productIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	snapRes, err := orderUC.checkOutConfirmTx(req, draftCheckOut, products, userID)
+	if err := orderUC.validateItems(products, draftCheckout.CheckoutItem); err != nil {
+		return nil, err
+	}
+
+	orderResult, err := orderUC.createOrderTx(req, draftCheckout, userID)
 	if err != nil {
 		return nil, err
 	}
+
+	//  MIDTRANS OUTSIDE TRANSACTION
+	snapRes, err := orderUC.MidtransGateWay.CreateMidtrans(orderResult)
+	if err != nil {
+		fmt.Println("payment: ", orderResult.Payment)
+		orderResult.Payment.Status = "failed"
+		fmt.Println("payment: ", orderResult.Payment)
+		if errP := orderUC.PaymentRepository.SavePayment(orderUC.DB, &orderResult.Payment); errP != nil {
+			fmt.Println("errUPDATE: ", errP.Error())
+		}
+		if errSO := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderResult.ID, 6); errSO != nil {
+			fmt.Println("errUPDATE: ", errSO.Error())
+		}
+		if errLC := orderUC.CheckOutRepository.UpdateStatusLastCheckOut(orderUC.DB, "cancel", userID); errLC != nil {
+			fmt.Println("errUPDATE: ", errLC.Error())
+		}
+		return nil, pkg.MappingError(err)
+	}
+
+	payment := model.PaymentOrderModel{
+		OrderID:     orderResult.ID,
+		SnapToken:   snapRes.Token,
+		RedirectURL: snapRes.RedirectURL,
+		Status:      "pending",
+	}
+
+	fmt.Println(" PAYMENT: ", payment)
+	_ = orderUC.PaymentRepository.SavePayment(orderUC.DB, &payment)
+
 	return &response.ResPayment{
+		OrderID:     orderResult.ID,
 		Token:       snapRes.Token,
 		RedirectUrl: snapRes.RedirectURL,
 	}, nil
 }
 
-func (orderUC *OrderUseCaseImpl) UpdateStatusOrder(orderID, statusOrder int64) error {
+////////////////////////////////////////////////////////////
+//////////////////// TRANSACTIONS //////////////////////////
+////////////////////////////////////////////////////////////
 
-	order, err := orderUC.OrderRepository.GetOrderByID(orderUC.DB, orderID)
-	if err != nil {
-		return pkg.MappingError(err)
-	}
-	if order.StatusID > 1 {
-		return nil
-	}
-	if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, statusOrder); err != nil {
-		return pkg.MappingError(err)
-	}
-	return nil
-}
+func (orderUC *OrderUseCaseImpl) createDraftCheckoutTx(req *request.ReqCheckout, items []model.CheckoutItemModel, total int64, userID int64) error {
 
-// TRANSACTION
-func (orderUC *OrderUseCaseImpl) checkOutTx(req *request.ReqCheckout, checkOutItems []model.CheckoutItemModel, totalPrice float64, userID int64) error {
 	return orderUC.DB.Transaction(func(tx *gorm.DB) error {
 
-		if err := orderUC.CheckOutRepository.UpdateStatusLastCheckOut(tx, "cancel", userID); err != nil {
+		if err := orderUC.CheckOutRepository.
+			UpdateStatusLastCheckOut(tx, "cancel", userID); err != nil {
 			return pkg.MappingError(err)
 		}
 
-		checkOut := model.CheckoutModel{
+		checkout := model.CheckoutModel{
 			Source:       req.Source,
 			UserID:       userID,
-			TotalPrice:   totalPrice,
+			TotalPrice:   total,
 			Status:       "draft",
-			CheckoutItem: checkOutItems,
+			CheckoutItem: items,
 		}
 
-		if err := orderUC.CheckOutRepository.CheckOut(tx, &checkOut); err != nil {
-			fmt.Println("error update cekout")
-			return pkg.MappingError(err)
-		}
-
-		return nil
+		return orderUC.CheckOutRepository.CheckOut(tx, &checkout)
 	})
 }
-func (orderUC *OrderUseCaseImpl) checkOutConfirmTx(req *request.ReqConfirmCheckout, draftCheckOut *model.CheckoutModel, products map[int64]*model.ProductModel, userID int64) (*snap.Response, error) {
-	var snapRes *snap.Response
+
+func (orderUC *OrderUseCaseImpl) createOrderTx(req *request.ReqConfirmCheckout, draftCheckout *model.CheckoutModel, userID int64) (*model.OrderModel, error) {
+
+	var orderResult *model.OrderModel
+
 	err := orderUC.DB.Transaction(func(tx *gorm.DB) error {
 
-		productStockUpdate := []*model.ProductModel{}
+		var orderItems []*model.OrderItemModel
 
-		orderItems := []*model.OrderItemModel{}
-		for _, item := range draftCheckOut.CheckoutItem {
+		for _, item := range draftCheckout.CheckoutItem {
+
 			orderItems = append(orderItems, &model.OrderItemModel{
 				ProductID: item.ProductID,
 				Qty:       item.Qty,
 				Price:     item.Price,
 				SubTotal:  item.SubTotal,
 			})
-
-			productStockUpdate = append(productStockUpdate, &model.ProductModel{
-				ID:    item.ProductID,
-				Stock: products[item.ProductID].Stock - item.Qty,
-			})
 		}
 
-		var address *model.AddressModel
-		if req.AddressID == 0 {
-			result, err := orderUC.AddressRepository.GetUserAddressActive(tx, userID)
-			if err != nil {
-				return pkg.MappingError(err)
-			}
-			address = result
-		} else {
-			result, err := orderUC.AddressRepository.GetAddressById(tx, req.AddressID)
-			if err != nil {
-				return pkg.MappingError(err)
-			}
-			address = result
+		address, err := orderUC.resolveAddress(tx, req.AddressID, userID)
+		if err != nil {
+			return pkg.MappingError(err)
 		}
 
-		orderCO := model.OrderModel{
-			TotalPrice:    draftCheckOut.TotalPrice,
+		order := model.OrderModel{
+			TotalPrice:    draftCheckout.TotalPrice,
 			PaymentMethod: req.PaymentMethod,
 			Noted:         req.Note,
 			StatusID:      1,
@@ -216,10 +312,13 @@ func (orderUC *OrderUseCaseImpl) checkOutConfirmTx(req *request.ReqConfirmChecko
 				City:    address.City,
 				Address: address.Address,
 			},
+			Payment: model.PaymentOrderModel{
+				Status: "pending",
+			},
 			UserID: userID,
 		}
 
-		orderResult, err := orderUC.OrderRepository.CreateOrder(tx, &orderCO)
+		result, err := orderUC.OrderRepository.CreateOrder(tx, &order)
 		if err != nil {
 			return pkg.MappingError(err)
 		}
@@ -228,105 +327,149 @@ func (orderUC *OrderUseCaseImpl) checkOutConfirmTx(req *request.ReqConfirmChecko
 			return pkg.MappingError(err)
 		}
 
-		//delete items cart
-		if draftCheckOut.Source == "cart" {
-			cartIDs := []int64{}
-			for _, item := range draftCheckOut.CheckoutItem {
-				cartIDs = append(cartIDs, *item.CartID)
-			}
-
-			if err := orderUC.CartRepository.DeleteCartItemsByIDs(tx, cartIDs, userID); err != nil {
-				return pkg.MappingError(err)
+		if draftCheckout.Source == "cart" {
+			if err := orderUC.deleteCartItems(tx, draftCheckout.CheckoutItem, userID); err != nil {
+				return err
 			}
 		}
-		if err := orderUC.ProductRepository.UpdateProductStockByID(tx, productStockUpdate); err != nil {
-			return pkg.MappingError(err)
-		}
+		orderResult = result
 
-		snap, err := orderUC.MidtransGateWay.CreateMidtrans(orderResult)
-		if err != nil {
-			return pkg.NewError(pkg.KindInternal, err.Error(), nil)
-		}
-		snapRes = snap
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return snapRes, nil
+
+	return orderResult, err
 }
 
-// UTILS
-func (orderUC *OrderUseCaseImpl) getProductsWithMapping() (map[int64]*model.ProductModel, error) {
+// HELPERS
 
-	getProducts, err := orderUC.ProductRepository.GetAllProduct(orderUC.DB)
+func (orderUC *OrderUseCaseImpl) resolveAddress(tx *gorm.DB, addressID int64, userID int64) (*model.AddressModel, error) {
+
+	if addressID == 0 {
+		return orderUC.AddressRepository.GetUserAddressActive(tx, userID)
+	}
+
+	return orderUC.AddressRepository.GetAddressById(tx, addressID)
+}
+
+func (orderUC *OrderUseCaseImpl) deleteCartItems(tx *gorm.DB, items []model.CheckoutItemModel, userID int64) error {
+
+	var cartIDs []int64
+	for _, item := range items {
+		if item.CartID != nil {
+			cartIDs = append(cartIDs, *item.CartID)
+		}
+	}
+
+	err := orderUC.CartRepository.DeleteCartItemsByIDs(tx, cartIDs, userID)
+	if err != nil {
+		return pkg.MappingError(err)
+	}
+
+	return nil
+
+}
+
+func (orderUC *OrderUseCaseImpl) getProductsMap(productIDs []int64) (map[int64]*model.ProductModel, error) {
+
+	products, err := orderUC.ProductRepository.GetAllProductByIDs(orderUC.DB, productIDs)
 	if err != nil {
 		return nil, pkg.MappingError(err)
 	}
 
-	products := make(map[int64]*model.ProductModel)
-	for _, product := range getProducts {
-		products[product.ID] = product
+	result := make(map[int64]*model.ProductModel)
+	for _, p := range products {
+		result[p.ID] = p
 	}
 
-	return products, nil
+	return result, nil
 }
 
-func (orderUC *OrderUseCaseImpl) mappingItems(products map[int64]*model.ProductModel, items []request.ReqItem) ([]model.CheckoutItemModel, error) {
+func (orderUC *OrderUseCaseImpl) validateItems(products map[int64]*model.ProductModel, items []model.CheckoutItemModel) error {
 
-	checkOutItems := []model.CheckoutItemModel{}
-	for _, item := range items {
-		checkOutItems = append(checkOutItems, model.CheckoutItemModel{
-			ProductID: item.ProductID,
-			Qty:       item.Qty,
-			Price:     products[item.ProductID].Price,
-			SubTotal:  products[item.ProductID].Price * float64(item.Qty),
-		})
+	for i := range items {
+
+		product, ok := products[items[i].ProductID]
+		if !ok {
+			return pkg.NewError(pkg.KindNotFound, fmt.Sprintf("product id %d not found", items[i].ProductID), nil)
+		}
+
+		if items[i].Qty > product.Stock {
+			return pkg.NewError(pkg.KindConflict, "qty cannot exceed available stock", nil)
+		}
+
+		items[i].Price = product.Price
+		items[i].SubTotal = product.Price * int64(items[i].Qty)
+
 	}
 
-	return checkOutItems, nil
+	return nil
 }
 
-func (orderUC *OrderUseCaseImpl) getItemByCarts(products map[int64]*model.ProductModel, cartIDs []int64, userID int64) ([]model.CheckoutItemModel, error) {
-	checkOutItems := []model.CheckoutItemModel{}
+func (orderUC *OrderUseCaseImpl) cartItems(cartIDs []int64, userID int64) (int64, []model.CheckoutItemModel, error) {
 
 	items, err := orderUC.CartRepository.GetAllCartItemByIDs(orderUC.DB, cartIDs, userID)
 	if err != nil {
-		return nil, pkg.MappingError(err)
+		return 0, nil, pkg.MappingError(err)
 	}
 
 	if len(cartIDs) != len(items) {
-		return nil, pkg.NewError(pkg.KindNotFound, "cart item id not exist, please check your cart id", nil)
+		return 0, nil, pkg.NewError(pkg.KindNotFound, "cart item or product not found", nil)
 	}
+
+	var (
+		checkOutItems []model.CheckoutItemModel
+		totalPrice    int64
+	)
 
 	for _, item := range items {
+
+		if item.Qty > item.Product.Stock {
+			return 0, nil, pkg.NewError(pkg.KindConflict, "qty cannot exceed available stock", nil)
+		}
+
 		checkOutItems = append(checkOutItems, model.CheckoutItemModel{
-			CartID:    &item.ID,
 			ProductID: item.ProductID,
 			Qty:       item.Qty,
-			Price:     products[item.ProductID].Price,
-			SubTotal:  products[item.ProductID].Price * float64(item.Qty),
+			Price:     item.Price,
+			SubTotal:  item.SubTotal,
+			CartID:    &item.ID,
 		})
-	}
-
-	return checkOutItems, nil
-}
-
-func (orderUC *OrderUseCaseImpl) validationProduct(products map[int64]*model.ProductModel, checkOutItems []model.CheckoutItemModel) (float64, error) {
-
-	var totalPrice float64 = 0
-	for _, item := range checkOutItems {
-		//product not exist
-		if products[item.ProductID].ID != item.ProductID {
-			return 0, pkg.NewError(pkg.KindNotFound, fmt.Sprintf("product id %d not found", item.ProductID), nil)
-		}
-
-		//stock not exist
-		if item.Qty > products[item.ProductID].Stock {
-			return 0, pkg.NewError(pkg.KindCancelled, "qty cannot exceed available stock", nil)
-		}
 		totalPrice += item.SubTotal
 	}
 
-	return totalPrice, nil
+	return totalPrice, checkOutItems, nil
+}
+func (orderUC *OrderUseCaseImpl) directItems(reqItems []request.ReqItem) (int64, []model.CheckoutItemModel, error) {
+
+	var (
+		checkOutItems []model.CheckoutItemModel
+		productIDs    []int64
+		totalPrice    int64
+	)
+
+	for _, item := range reqItems {
+		productIDs = append(productIDs, item.ProductID)
+	}
+
+	products, err := orderUC.getProductsMap(productIDs)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	for _, item := range reqItems {
+		if item.Qty > products[item.ProductID].Stock {
+			return 0, nil, pkg.NewError(pkg.KindConflict, "qty cannot exceed available stock", nil)
+		}
+
+		subTotal := products[item.ProductID].Price * int64(item.Qty)
+		checkOutItems = append(checkOutItems, model.CheckoutItemModel{
+			ProductID: item.ProductID,
+			Qty:       item.Qty,
+			Price:     products[item.ProductID].Price,
+			SubTotal:  subTotal,
+		})
+		totalPrice += subTotal
+	}
+
+	return totalPrice, checkOutItems, nil
 }

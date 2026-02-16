@@ -12,7 +12,7 @@ func responseErrCustom(ctx *fiber.Ctx, err *pkg.ErrorCustom) error {
 
 	return ctx.Status(err.GetStatusCode()).JSON(response.ResponseStandard{
 		Success: false,
-		Message: string(err.Message),
+		Message: err.Message,
 		Errors:  err.Errors,
 	})
 }

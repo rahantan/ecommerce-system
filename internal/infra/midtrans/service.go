@@ -5,7 +5,6 @@ import (
 	"ecommerce-system/internal/domain/model"
 	"ecommerce-system/internal/pkg"
 	"errors"
-	"fmt"
 	"strconv"
 
 	"github.com/midtrans/midtrans-go"
@@ -21,6 +20,7 @@ func NewMidtransGateWay(mdClient snap.Client) domain.MidtransGateWay {
 		Client: mdClient,
 	}
 }
+
 func (md *MidtransGateWayImpl) CreateMidtrans(order *model.OrderModel) (*snap.Response, error) {
 
 	if len(order.OrderItem) < 1 {
@@ -30,10 +30,11 @@ func (md *MidtransGateWayImpl) CreateMidtrans(order *model.OrderModel) (*snap.Re
 	var items []midtrans.ItemDetails
 	for _, item := range order.OrderItem {
 
-		fmt.Println("product id", item.ProductID)
-		fmt.Println("product name", item.Product.Name)
-		fmt.Println("product price", item.Price)
-		fmt.Println("qty", item.Qty)
+		// item.Product.Name = ""
+		if item.Product.Name == "" {
+			return nil, pkg.NewError(pkg.KindNotFound, "product name not found", nil)
+		}
+
 		items = append(items, midtrans.ItemDetails{
 			ID:    strconv.Itoa(int(item.ProductID)),
 			Name:  item.Product.Name,
@@ -42,8 +43,6 @@ func (md *MidtransGateWayImpl) CreateMidtrans(order *model.OrderModel) (*snap.Re
 		})
 	}
 
-	orderID := order.ID
-	fmt.Println("saat confirm checkout", orderID)
 	snapRes, err := md.Client.CreateTransaction(&snap.Request{
 		TransactionDetails: midtrans.TransactionDetails{
 			OrderID:  strconv.Itoa(int(order.ID)),

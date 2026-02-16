@@ -17,7 +17,7 @@ type ProductRepository interface {
 	GetProductById(db *gorm.DB, id int64) (*model.ProductModel, error)
 	CheckProductNotFoundForUpdate(db *gorm.DB, productID int64) error
 
-	UpdateProductStockByID(db *gorm.DB, product []*model.ProductModel) error
+	UpdateProductStock(db *gorm.DB, products []model.ProductModel) error
 }
 
 type ProductUseCase interface {

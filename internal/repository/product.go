@@ -39,6 +39,7 @@ func (productRepo *ProductRepositoryImpl) GetAllProductByIDs(db *gorm.DB, produc
 	if err := db.Where("id IN ?", productIDs).Preload("Category").Find(&products).Error; err != nil {
 		return nil, err
 	}
+
 	return products, nil
 }
 
@@ -82,7 +83,7 @@ func (productRepo *ProductRepositoryImpl) GetAllProduct(db *gorm.DB) ([]*model.P
 	return products, nil
 }
 
-func (productRepo *ProductRepositoryImpl) UpdateProductStockByID(db *gorm.DB, products []*model.ProductModel) error {
+func (productRepo *ProductRepositoryImpl) UpdateProductStock(db *gorm.DB, products []model.ProductModel) error {
 
 	sql := "UPDATE products SET stock = CASE id "
 	args := []interface{}{}

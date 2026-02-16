@@ -65,6 +65,7 @@ var (
 	ErrCustomInvalidAddressId  = NewError(KindValidationError, "invalid address id", nil)
 	ErrCustomInvalidProductId  = NewError(KindValidationError, "invalid product id", nil)
 	ErrCustomInvalidCartId     = NewError(KindValidationError, "invalid cart id", nil)
+	ErrCustomInvalidOrderId    = NewError(KindValidationError, "invalid order id", nil)
 
 	ErrCustomLogin = NewError(KindUnauthorized, "invalid email or password", nil)
 )

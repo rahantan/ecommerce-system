@@ -41,6 +41,7 @@ func main() {
 	cartRepository := repository.NewCartRepository()
 	orderRepo := repository.NewOrderRepository()
 	checkOutRepo := repository.NewCheckOutRepository()
+	paymentRepo := repository.NewPaymentRepository()
 
 	userUseCase := usecase.NewUserUseCase(userRepository, connection)
 	addressUseCase := usecase.NewAddressUseCase(addressRepository, connection)
@@ -50,7 +51,7 @@ func main() {
 
 	midtransPayment := midtrans.NewMidtransGateWay(config.Client)
 
-	orderUseCase := usecase.NewOrderUseCase(checkOutRepo, orderRepo, cartRepository, productRepository, addressRepository, midtransPayment, connection)
+	orderUseCase := usecase.NewOrderUseCase(checkOutRepo, orderRepo, cartRepository, productRepository, addressRepository, paymentRepo, midtransPayment, connection)
 
 	authHandler := handler.NewAuthController(userUseCase, validate, config)
 	addressHandler := handler.NewAddressHandler(addressUseCase, validate)

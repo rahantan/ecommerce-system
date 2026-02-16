@@ -7,8 +7,8 @@ type ReqItem struct {
 
 type ReqCheckout struct {
 	Source  string    `json:"source" validate:"required,oneof=cart direct"`
-	Items   []ReqItem `json:"items,omitempty"`    // required in direct
-	CartIDs []int64   `json:"cart_ids,omitempty"` // required in cart
+	Items   []ReqItem `json:"items,omitempty" validate:"required_if=Source direct,dive"`
+	CartIDs []int64   `json:"cart_ids,omitempty" validate:"required_if=Source cart,dive"`
 }
 
 type ReqConfirmCheckout struct {

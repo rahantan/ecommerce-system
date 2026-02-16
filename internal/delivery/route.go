@@ -74,7 +74,10 @@ func (route *Handlers) Customers(customer fiber.Router) {
 	customer.Get("/carts", route.CartHandler.GetAllUserCartItem)
 	customer.Delete("/carts", route.CartHandler.DeleteCartItemsByIDs)
 
-	customer.Get("/order/checkout", route.OrderHandler.GetLastDraftCheckOut)
-	customer.Post("/order/checkout", route.OrderHandler.CheckOut)
-	customer.Post("/order/confirm", route.OrderHandler.CheckOutConfirm)
+	customer.Get("/orders/checkout", route.OrderHandler.GetLastDraftCheckOut)
+	customer.Post("/orders/checkout", route.OrderHandler.CheckOut)
+	customer.Post("/orders/confirm", route.OrderHandler.CheckOutConfirm)
+
+	customer.Get("/orders/:orderID", route.OrderHandler.GetOrderDetails)
+	customer.Get("/orders", route.OrderHandler.GetAllOrder)
 }

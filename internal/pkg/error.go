@@ -28,6 +28,10 @@ func ValidationError(err error) *ErrorCustom {
 				errDetail[validate.Field()] = strings.ToLower(fmt.Sprintf("%s must be number", validate.Field()))
 			case "gt":
 				errDetail[validate.Field()] = strings.ToLower(fmt.Sprintf("%s must be at least 1", validate.Field()))
+			case "oneof":
+				errDetail[validate.Field()] = fmt.Sprintf("%s must be one of [%s]", strings.ToLower(validate.Field()), validate.Param())
+			case "required_if":
+				errDetail[validate.Field()] = fmt.Sprintf("%s is required when %s is %s", strings.ToLower(validate.Field()), strings.ToLower(validate.Param()[0:strings.Index(validate.Param(), " ")]), validate.Param()[strings.Index(validate.Param(), " ")+1:])
 			}
 		}
 		return NewError(KindValidationError, "validation errors", errDetail)

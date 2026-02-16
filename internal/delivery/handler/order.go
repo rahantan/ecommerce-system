@@ -36,32 +36,23 @@ func (orderHandler *OrderHandlerImpl) midTransVerify(orderId, statusCode, grossM
 func (orderHandler *OrderHandlerImpl) WebHookMidtransNotif(ctx *fiber.Ctx) error {
 	var body request.MidtransNotification
 	if err := ctx.BodyParser(&body); err != nil {
-		fmt.Println("webhook err:= ", err.Error())
 		return pkg.ErrCustomInvalidPayload
 	}
+
 	if !orderHandler.midTransVerify(body.OrderID, body.StatusCode, body.GrossAmount, body.SignatureKey) {
-		fmt.Println("masuk sini cuy")
 		return ctx.SendStatus(pkg.ErrCustomForbidden.GetStatusCode())
 	}
 
 	if body.FraudStatus == "accept" {
 		orderID, _ := strconv.Atoi(body.OrderID)
 		fmt.Println("order id: ", orderID)
-		switch body.TransactionStatus {
-		case "pending":
-			fmt.Println("pembayaran ditunggu")
-		case "settlement":
-			if err := orderHandler.OrderUseCase.UpdateStatusOrder(int64(orderID), 2); err != nil {
-				return err
-			}
-			fmt.Println("pembayaran lunas, id order:= ", body.OrderID)
-		case "expire":
-			if err := orderHandler.OrderUseCase.UpdateStatusOrder(int64(orderID), 3); err != nil {
-				return err
-			}
-			fmt.Println("pembayaran kadalwarsa")
+
+		if err := orderHandler.UpdateStatusPayment(int64(orderID), body.TransactionStatus); err != nil {
+			return err
 		}
+
 	} else {
+
 		fmt.Println("ente mau nipu yah?")
 		return ctx.SendStatus(pkg.ErrCustomForbidden.GetStatusCode())
 	}
@@ -127,6 +118,47 @@ func (orderHandler *OrderHandlerImpl) CheckOutConfirm(ctx *fiber.Ctx) error {
 		Data:    result,
 	})
 }
+func (orderHandler *OrderHandlerImpl) GetOrderDetails(ctx *fiber.Ctx) error {
+	user, err := orderHandler.getUserData(ctx)
+	if err != nil {
+		return err
+	}
+	orderID, err := strconv.Atoi(ctx.Params("orderID"))
+	if err != nil {
+		return pkg.ErrCustomInvalidOrderId
+	}
+
+	order, err := orderHandler.OrderUseCase.GetOrderDetails(user.ID, int64(orderID))
+	if err != nil {
+		return err
+	}
+	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
+		Success: true,
+		Message: "success get all order",
+		Data: map[string]any{
+			"orders": order,
+		},
+	})
+}
+
+func (orderHandler *OrderHandlerImpl) GetAllOrder(ctx *fiber.Ctx) error {
+	user, err := orderHandler.getUserData(ctx)
+	if err != nil {
+		return err
+	}
+	orders, err := orderHandler.OrderUseCase.GetAllOrder(user.ID)
+	if err != nil {
+		return err
+	}
+	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{
+		Success: true,
+		Message: "success get all order",
+		Data: map[string]any{
+			"orders": orders,
+		},
+	})
+}
+
 func (orderHandler *OrderHandlerImpl) GetLastDraftCheckOut(ctx *fiber.Ctx) error {
 
 	user, err := orderHandler.getUserData(ctx)
@@ -146,5 +178,4 @@ func (orderHandler *OrderHandlerImpl) GetLastDraftCheckOut(ctx *fiber.Ctx) error
 			"checkout_draft": result,
 		},
 	})
-
 }

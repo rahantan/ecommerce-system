@@ -19,27 +19,37 @@ func (orderRepo *OrderRepositoryImpl) CreateOrder(db *gorm.DB, order *model.Orde
 	}
 	return orderRepo.GetOrderByID(db, order.ID)
 }
+
 func (orderRepo *OrderRepositoryImpl) GetOrderByID(db *gorm.DB, orderID int64) (*model.OrderModel, error) {
 	var order model.OrderModel
-	if err := db.Where("id=? ", orderID).Preload("OrderItem").Preload("OrderItem.Product").Take(&order).Error; err != nil {
+	if err := db.Where("id=? ", orderID).Preload("Payment").Preload("OrderItem").Preload("OrderItem.Product").Take(&order).Error; err != nil {
 		return nil, model.ErrOrderNotFound
 	}
+
 	return &order, nil
 }
 func (orderRepo *OrderRepositoryImpl) GetAllOrder(db *gorm.DB, userID int64) ([]*model.OrderModel, error) {
 	var orders []*model.OrderModel
-	if err := db.Where("userID=?", userID).Find(&orders).Error; err != nil {
+	if err := db.Where("user_id=?", userID).Preload("OrderItem").Preload("OrderStatus").Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	return orders, nil
 }
 
-func (orderRepo *OrderRepositoryImpl) GetAllOrderItem(db *gorm.DB, orderID, userID int64) ([]*model.OrderItemModel, error) {
-	var orderItems []*model.OrderItemModel
-	if err := db.Where("order_id=? AND userID=?", orderID, userID).Preload("OrderItem").Find(&orderItems).Error; err != nil {
+func (orderRepo *OrderRepositoryImpl) GetOrderDetailsByID(db *gorm.DB, userID, orderID int64) (*model.OrderModel, error) {
+	var order *model.OrderModel
+	if err := db.Where("id=? AND user_id=?", orderID, userID).Preload("OrderStatus").Preload("OrderItem").Preload("OrderItem.Product").Take(&order).Error; err != nil {
 		return nil, err
 	}
-	return orderItems, nil
+	return order, nil
+}
+
+func (orderRepo *OrderRepositoryImpl) GetAllOrderByStatusID(db *gorm.DB, userID, status int64) ([]*model.OrderModel, error) {
+	var orders []*model.OrderModel
+	if err := db.Where("user_id=?", userID).Preload("OrderStatus").Find(&orders).Error; err != nil {
+		return nil, err
+	}
+	return orders, nil
 }
 
 func (orderRepo *OrderRepositoryImpl) UpdateStatusOrder(db *gorm.DB, orderID int64, statusID int64) error {
@@ -48,6 +58,7 @@ func (orderRepo *OrderRepositoryImpl) UpdateStatusOrder(db *gorm.DB, orderID int
 	}
 	return nil
 }
+
 func (orderRepo *OrderRepositoryImpl) DeleteOrder(db *gorm.DB, orderID int64, userID int64) error {
 	if err := db.Where("order_id=? AND user_id=?", orderID, userID).Delete(&model.OrderModel{}).Error; err != nil {
 		return err
