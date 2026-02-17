@@ -1,11 +1,37 @@
 package usecase
 
 import (
+	"ecommerce-system/internal/delivery/dto/response"
 	"ecommerce-system/internal/domain/model"
 	"ecommerce-system/internal/pkg"
 
 	"gorm.io/gorm"
 )
+
+func (orderUC *OrderUseCaseImpl) GetUserPaymentByOrderID(orderID, userID int64) (*response.ResPayment, error) {
+	payment, err := orderUC.PaymentRepository.GetPaymentByOrderID(orderUC.DB, orderID)
+	if err != nil {
+		return nil, pkg.MappingError(err)
+	}
+	disallowedPaymentStatuses := map[string]string{
+		"settlement": "The payment has been successfully completed.",
+		"cancel":     "The payment has been canceled.",
+		"expire":     "The payment has expired.",
+		"refund":     "The payment has been refunded.",
+	}
+
+	if disallowedPaymentStatuses[payment.Status] != "" {
+		return nil, pkg.NewError(pkg.KindInfo, disallowedPaymentStatuses[payment.Status], nil)
+	}
+
+	return &response.ResPayment{
+		ID:          payment.ID,
+		Token:       payment.SnapToken,
+		OrderID:     payment.OrderID,
+		RedirectUrl: payment.RedirectURL,
+	}, nil
+
+}
 
 func (orderUC *OrderUseCaseImpl) UpdateStatusPaymentTx(orderID int64, order *model.OrderModel, newPaymentStatus string) error {
 	return orderUC.DB.Transaction(func(tx *gorm.DB) error {

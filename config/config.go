@@ -77,7 +77,7 @@ func (conf *Config) ConnectionDb() *gorm.DB {
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Println(err.Error())
+		log.Fatalf("failed to connect to database: %v", err)
 	}
 
 	return db

@@ -11,7 +11,8 @@ import (
 )
 
 type OrderRepository interface {
-	GetAllOrder(db *gorm.DB, userID int64) ([]*model.OrderModel, error)
+	GetAllOrder(db *gorm.DB) ([]*model.OrderModel, error)
+	GetAllUserOrder(db *gorm.DB, userID int64) ([]*model.OrderModel, error)
 	GetOrderDetailsByID(db *gorm.DB, userID, orderID int64) (*model.OrderModel, error)
 	GetOrderByID(db *gorm.DB, orderID int64) (*model.OrderModel, error)
 	CreateOrder(db *gorm.DB, order *model.OrderModel) (*model.OrderModel, error)
@@ -33,12 +34,18 @@ type PaymentRepository interface {
 	GetPaymentByOrderID(db *gorm.DB, orderID int64) (*model.PaymentOrderModel, error)
 	UpdateStatusPayment(db *gorm.DB, orderID int64, status string) error
 	SavePayment(db *gorm.DB, peyment *model.PaymentOrderModel) error
+	// GetUserPaymentByOrderID(db *gorm.DB, orderID, userID int64) (*model.PaymentOrderModel, error)
 }
 
 type OrderUseCase interface {
 	GetOrderDetails(userID, orderID int64) (*response.ResOrder, error)
-	GetAllOrder(userID int64) ([]response.ResOrder, error)
+	GetAllUserOrder(userID int64) ([]response.ResOrder, error)
+	GetAllOrder() ([]response.ResOrder, error)
 	UpdateStatusOrder(orderID, statusOrder int64) error
+	ReceiveOrder(orderID, userID int64) error
+	ShipOrder(orderID int64) error
+
+	GetUserPaymentByOrderID(orderID, userID int64) (*response.ResPayment, error)
 
 	CheckOut(req *request.ReqCheckout, userID int64) error
 	CheckOutConfirm(req *request.ReqConfirmCheckout, userID int64) (*response.ResPayment, error)
@@ -53,5 +60,9 @@ type OrderHandler interface {
 	GetLastDraftCheckOut(ctx *fiber.Ctx) error
 	WebHookMidtransNotif(ctx *fiber.Ctx) error
 	GetAllOrder(ctx *fiber.Ctx) error
+	GetAllUserOrder(ctx *fiber.Ctx) error
 	GetOrderDetails(ctx *fiber.Ctx) error
+	ShipOrder(ctx *fiber.Ctx) error
+	ReceiveOrder(ctx *fiber.Ctx) error
+	GetUserPaymentByOrderID(ctx *fiber.Ctx) error
 }

@@ -10,8 +10,13 @@ import (
 
 func responseErrCustom(ctx *fiber.Ctx, err *pkg.ErrorCustom) error {
 
-	return ctx.Status(err.GetStatusCode()).JSON(response.ResponseStandard{
-		Success: false,
+	statusCode := err.GetStatusCode()
+	success := false
+	if statusCode >= 200 && statusCode < 300 {
+		success = true
+	}
+	return ctx.Status(statusCode).JSON(response.ResponseStandard{
+		Success: success,
 		Message: err.Message,
 		Errors:  err.Errors,
 	})

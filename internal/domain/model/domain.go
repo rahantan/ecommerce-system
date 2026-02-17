@@ -18,6 +18,7 @@ var (
 	ErrAddressNotFound  = errors.New("address not found")
 	ErrOrderNotFound    = errors.New("order not found")
 	ErrCheckOutNotFound = errors.New("checkout not found")
+	ErrPaymentNotFound  = errors.New("payment not found")
 )
 
 func getMysqlErr(err error, mysqlCode uint16) bool {

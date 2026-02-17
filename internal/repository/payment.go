@@ -14,10 +14,11 @@ type PayementRepositoryImpl struct {
 func NewPaymentRepository() domain.PaymentRepository {
 	return &PayementRepositoryImpl{}
 }
+
 func (paymentRepo *PayementRepositoryImpl) GetPaymentByOrderID(db *gorm.DB, orderID int64) (*model.PaymentOrderModel, error) {
 	var payment model.PaymentOrderModel
 	if err := db.Where("order_id=?", orderID).Last(&payment).Error; err != nil {
-		return nil, err
+		return nil, model.ErrPaymentNotFound
 	}
 	return &payment, nil
 }

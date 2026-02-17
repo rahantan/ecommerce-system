@@ -44,12 +44,58 @@ func NewOrderUseCase(
 	}
 }
 
-func (orderUC *OrderUseCaseImpl) UpdateStatusOrder(orderID, statusOrder int64) error {
+func (orderUC *OrderUseCaseImpl) ShipOrder(orderID int64) error {
+	order, err := orderUC.OrderRepository.GetOrderByID(orderUC.DB, orderID)
+	if err != nil {
+		return pkg.MappingError(err)
+	}
+	switch order.StatusID {
+	case 1:
+		return pkg.NewError(pkg.KindCancelled, "Order has not been paid yet; cannot update", nil)
+	case 3:
+		return pkg.NewError(pkg.KindInfo, "Order already shipped; no update performed", nil)
+	case 4:
+		return pkg.NewError(pkg.KindInfo, "Order already received; no update performed", nil)
+	case 6:
+		return pkg.NewError(pkg.KindCancelled, "Order has been cancelled; cannot update", nil)
+	default:
+		if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, 3); err != nil {
+			return pkg.MappingError(err)
+		}
+	}
 
+	if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, 3); err != nil {
+		return pkg.MappingError(err)
+	}
+	return nil
+}
+func (orderUC *OrderUseCaseImpl) ReceiveOrder(orderID, userID int64) error {
+	order, err := orderUC.OrderRepository.GetOrderByID(orderUC.DB, orderID)
+	if err != nil {
+		return pkg.MappingError(err)
+	}
+	switch order.StatusID {
+	case 1:
+		return pkg.NewError(pkg.KindCancelled, "Order has not been paid yet; cannot update", nil)
+	case 2:
+		return pkg.NewError(pkg.KindCancelled, "Order is still being processed; cannot update", nil)
+	case 4:
+		return pkg.NewError(pkg.KindInfo, "Order already received; no update performed", nil)
+	case 6:
+		return pkg.NewError(pkg.KindCancelled, "Order has been cancelled; cannot update", nil)
+	default:
+		if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, 4); err != nil {
+			return pkg.MappingError(err)
+		}
+	}
+
+	return nil
+}
+
+func (orderUC *OrderUseCaseImpl) UpdateStatusOrder(orderID, statusOrder int64) error {
 	if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, statusOrder); err != nil {
 		return pkg.MappingError(err)
 	}
-
 	return nil
 }
 
@@ -86,8 +132,8 @@ func (orderUC *OrderUseCaseImpl) GetOrderDetails(userID, orderID int64) (*respon
 
 	return &order, nil
 }
-func (orderUC *OrderUseCaseImpl) GetAllOrder(userID int64) ([]response.ResOrder, error) {
-	resultOrder, err := orderUC.OrderRepository.GetAllOrder(orderUC.DB, userID)
+func (orderUC *OrderUseCaseImpl) GetAllOrder() ([]response.ResOrder, error) {
+	resultOrder, err := orderUC.OrderRepository.GetAllOrder(orderUC.DB)
 	if err != nil {
 		return nil, pkg.MappingError(err)
 	}
@@ -109,35 +155,29 @@ func (orderUC *OrderUseCaseImpl) GetAllOrder(userID int64) ([]response.ResOrder,
 
 	return orders, nil
 }
+func (orderUC *OrderUseCaseImpl) GetAllUserOrder(userID int64) ([]response.ResOrder, error) {
+	resultOrder, err := orderUC.OrderRepository.GetAllUserOrder(orderUC.DB, userID)
+	if err != nil {
+		return nil, pkg.MappingError(err)
+	}
 
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
+	var orders []response.ResOrder
+
+	for _, order := range resultOrder {
+		orders = append(orders, response.ResOrder{
+			ID: order.ID,
+			Status: response.ResOrderStatus{
+				ID:   order.OrderStatus.ID,
+				Name: order.OrderStatus.Name,
+			},
+			TotalItems: len(order.OrderItem),
+			TotalPrice: order.TotalPrice,
+			CreatedAt:  order.CreatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	return orders, nil
+}
 
 func (orderUC *OrderUseCaseImpl) GetLastDraftCheckOut(userID int64) (*response.ResCheckOut, error) {
 	result, err := orderUC.CheckOutRepository.GetLastDraftCheckOut(orderUC.DB, userID)
@@ -238,6 +278,7 @@ func (orderUC *OrderUseCaseImpl) CheckOutConfirm(req *request.ReqConfirmCheckout
 	}
 
 	payment := model.PaymentOrderModel{
+		ID:          orderResult.Payment.ID,
 		OrderID:     orderResult.ID,
 		SnapToken:   snapRes.Token,
 		RedirectURL: snapRes.RedirectURL,
@@ -248,6 +289,7 @@ func (orderUC *OrderUseCaseImpl) CheckOutConfirm(req *request.ReqConfirmCheckout
 	_ = orderUC.PaymentRepository.SavePayment(orderUC.DB, &payment)
 
 	return &response.ResPayment{
+		ID:          orderResult.Payment.ID,
 		OrderID:     orderResult.ID,
 		Token:       snapRes.Token,
 		RedirectUrl: snapRes.RedirectURL,

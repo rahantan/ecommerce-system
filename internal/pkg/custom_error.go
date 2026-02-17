@@ -36,6 +36,8 @@ func (err *ErrorCustom) GetStatusCode() int {
 		return http.StatusNotFound
 	case KindConflict:
 		return http.StatusConflict
+	case KindInfo:
+		return http.StatusOK
 	default:
 		return http.StatusInternalServerError
 	}
@@ -52,6 +54,7 @@ const (
 	KindNotFound        Kind = "not found"
 	KindConflict        Kind = "conflict"
 	KindCancelled       Kind = "cancelled"
+	KindInfo            Kind = "info"
 )
 
 // CUSTOM ERROR

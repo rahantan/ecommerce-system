@@ -28,9 +28,16 @@ func (orderRepo *OrderRepositoryImpl) GetOrderByID(db *gorm.DB, orderID int64) (
 
 	return &order, nil
 }
-func (orderRepo *OrderRepositoryImpl) GetAllOrder(db *gorm.DB, userID int64) ([]*model.OrderModel, error) {
+func (orderRepo *OrderRepositoryImpl) GetAllUserOrder(db *gorm.DB, userID int64) ([]*model.OrderModel, error) {
 	var orders []*model.OrderModel
-	if err := db.Where("user_id=?", userID).Preload("OrderItem").Preload("OrderStatus").Find(&orders).Error; err != nil {
+	if err := db.Where("status_id != ?", 6).Preload("OrderItem").Preload("OrderStatus").Find(&orders).Error; err != nil {
+		return nil, err
+	}
+	return orders, nil
+}
+func (orderRepo *OrderRepositoryImpl) GetAllOrder(db *gorm.DB) ([]*model.OrderModel, error) {
+	var orders []*model.OrderModel
+	if err := db.Preload("OrderItem").Preload("OrderStatus").Find(&orders).Error; err != nil {
 		return nil, err
 	}
 	return orders, nil
@@ -44,13 +51,13 @@ func (orderRepo *OrderRepositoryImpl) GetOrderDetailsByID(db *gorm.DB, userID, o
 	return order, nil
 }
 
-func (orderRepo *OrderRepositoryImpl) GetAllOrderByStatusID(db *gorm.DB, userID, status int64) ([]*model.OrderModel, error) {
-	var orders []*model.OrderModel
-	if err := db.Where("user_id=?", userID).Preload("OrderStatus").Find(&orders).Error; err != nil {
-		return nil, err
-	}
-	return orders, nil
-}
+// func (orderRepo *OrderRepositoryImpl) GetAllOrderByStatusID(db *gorm.DB, userID, status int64) ([]*model.OrderModel, error) {
+// 	var orders []*model.OrderModel
+// 	if err := db.Where("user_id=?", userID).Preload("OrderStatus").Find(&orders).Error; err != nil {
+// 		return nil, err
+// 	}
+// 	return orders, nil
+// }
 
 func (orderRepo *OrderRepositoryImpl) UpdateStatusOrder(db *gorm.DB, orderID int64, statusID int64) error {
 	if err := db.Model(&model.OrderModel{}).Where("id=? ", orderID).Update("status_id", statusID).Error; err != nil {

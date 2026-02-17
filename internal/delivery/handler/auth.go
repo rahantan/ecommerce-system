@@ -65,7 +65,8 @@ func (auth *AuthHandlerImpl) Login(ctx *fiber.Ctx) error {
 		Value:    token,
 		HTTPOnly: true,
 		Secure:   true,
-		Expires:  time.Now().Add(365 * 24 * time.Hour),
+		SameSite: "Strict",
+		Expires:  time.Now().Add(24 * time.Hour),
 	})
 
 	return ctx.Status(fiber.StatusOK).JSON(response.ResponseStandard{

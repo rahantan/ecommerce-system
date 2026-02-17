@@ -70,7 +70,7 @@ func (categoryHandler *CategoryHandlerImpl) UpdateCategoryById(ctx *fiber.Ctx) e
 		return pkg.ErrCustomInvalidPayload
 	}
 
-	categoryId, err := strconv.Atoi(ctx.Params("productId"))
+	categoryId, err := strconv.Atoi(ctx.Params("categoryId"))
 	if err != nil {
 		return pkg.ErrCustomInvalidCategoryId
 	}

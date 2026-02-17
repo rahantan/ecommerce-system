@@ -62,6 +62,9 @@ func (route *Handlers) Admin(admin fiber.Router) {
 
 	admin.Put("/categories/:categoryId", route.CategoryHandler.UpdateCategoryById)
 	admin.Post("/categories", route.CategoryHandler.CreateCategory)
+
+	admin.Put("/orders/:orderID/ship", route.OrderHandler.ShipOrder)
+	admin.Get("/orders", route.OrderHandler.GetAllOrder)
 }
 
 func (route *Handlers) Customers(customer fiber.Router) {
@@ -78,6 +81,8 @@ func (route *Handlers) Customers(customer fiber.Router) {
 	customer.Post("/orders/checkout", route.OrderHandler.CheckOut)
 	customer.Post("/orders/confirm", route.OrderHandler.CheckOutConfirm)
 
+	customer.Put("/orders/:orderID/receive", route.OrderHandler.ReceiveOrder)
+	customer.Get("/orders/:orderID/payment", route.OrderHandler.GetUserPaymentByOrderID)
 	customer.Get("/orders/:orderID", route.OrderHandler.GetOrderDetails)
-	customer.Get("/orders", route.OrderHandler.GetAllOrder)
+	customer.Get("/orders", route.OrderHandler.GetAllUserOrder)
 }
