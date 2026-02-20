@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"ecommerce-system/internal/delivery/dto/response"
-	jwtauth "ecommerce-system/internal/infra/jwt"
+	jwtauth "ecommerce-system/internal/infra/external/jwt"
 	"ecommerce-system/internal/pkg"
 	"errors"
 

@@ -29,8 +29,9 @@ type Jwt struct {
 }
 
 type Midtrans struct {
-	ServerKey string
-	Env       string
+	ServerKey  string
+	Env        string
+	ExpireTime string
 	snap.Client
 }
 type Config struct {
@@ -61,8 +62,9 @@ func LoadConfig() *Config {
 			SecretKey: os.Getenv("JWT_SECRET_KEY"),
 		},
 		Midtrans: Midtrans{
-			ServerKey: os.Getenv("MIDTRANS_SERVER_KEY"),
-			Env:       os.Getenv("MIDTRANS_ENV"),
+			ServerKey:  os.Getenv("MIDTRANS_SERVER_KEY"),
+			Env:        os.Getenv("MIDTRANS_ENV"),
+			ExpireTime: os.Getenv("MIDTRANS_EXPIRE"),
 		},
 	}
 }

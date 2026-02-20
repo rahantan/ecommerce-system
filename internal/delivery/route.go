@@ -11,13 +11,13 @@ import (
 
 type Handlers struct {
 	*config.Config
-	domain.AuthHandler
+	domain.UserHandler
 	domain.CategoryHandler
 	domain.ProductHandler
-	domain.AddressHandler
 	domain.CartHandler
 	domain.OrderHandler
 	domain.MidtransGateWay
+	domain.CheckOutHandler
 }
 
 func NewRoute(app *fiber.App, handler *Handlers) {
@@ -32,7 +32,7 @@ func NewRoute(app *fiber.App, handler *Handlers) {
 	handler.Public(public)
 
 	private := api.Group("/private", middleware.JwtValidationToken(handler.Config.Jwt.SecretKey), limit)
-	private.Delete("/logout", handler.AuthHandler.Logout)
+	private.Delete("/logout", handler.UserHandler.Logout)
 
 	admin := private.Group("/admin", middleware.Authorization(1))
 	handler.Admin(admin)
@@ -46,8 +46,8 @@ func (route *Handlers) WebHook(webHook fiber.Router) {
 }
 func (route *Handlers) Public(public fiber.Router) {
 	auth := public.Group("/auth")
-	auth.Post("/login", route.AuthHandler.Login)
-	auth.Post("/register", route.AuthHandler.Register)
+	auth.Post("/login", route.UserHandler.Login)
+	auth.Post("/register", route.UserHandler.Register)
 
 	public.Get("/products/:productId", route.ProductHandler.GetProductById)
 	public.Get("/products", route.ProductHandler.GetAllProduct)
@@ -68,21 +68,22 @@ func (route *Handlers) Admin(admin fiber.Router) {
 }
 
 func (route *Handlers) Customers(customer fiber.Router) {
-	customer.Get("/addresses/active", route.AddressHandler.GetUserActiveAddress)
-	customer.Get("/addresses", route.AddressHandler.GetAllAddress)
-	customer.Post("/addresses", route.AddressHandler.CreateAddress)
-	customer.Put("/addresses/:addressId", route.AddressHandler.UpdateAddressByUserId)
+	customer.Get("/addresses/active", route.UserHandler.GetUserActiveAddress)
+	customer.Get("/addresses", route.UserHandler.GetAllAddress)
+	customer.Post("/addresses", route.UserHandler.CreateAddress)
+	customer.Put("/addresses/:addressId", route.UserHandler.UpdateAddressByUserId)
 
+	customer.Put("/carts/:cartID", route.CartHandler.UpdateCartItemByID)
 	customer.Post("/carts", route.CartHandler.AddCartItem)
 	customer.Get("/carts", route.CartHandler.GetAllUserCartItem)
 	customer.Delete("/carts", route.CartHandler.DeleteCartItemsByIDs)
 
-	customer.Get("/orders/checkout", route.OrderHandler.GetLastDraftCheckOut)
-	customer.Post("/orders/checkout", route.OrderHandler.CheckOut)
-	customer.Post("/orders/confirm", route.OrderHandler.CheckOutConfirm)
+	customer.Get("/orders/checkout", route.CheckOutHandler.GetLastDraftCheckOut)
+	customer.Post("/orders/checkout", route.CheckOutHandler.CheckOut)
+	customer.Post("/orders/confirm", route.CheckOutHandler.CheckOutConfirm)
 
 	customer.Put("/orders/:orderID/receive", route.OrderHandler.ReceiveOrder)
 	customer.Get("/orders/:orderID/payment", route.OrderHandler.GetUserPaymentByOrderID)
 	customer.Get("/orders/:orderID", route.OrderHandler.GetOrderDetails)
-	customer.Get("/orders", route.OrderHandler.GetAllUserOrder)
+	customer.Get("/orders", route.OrderHandler.GetUserOrders)
 }

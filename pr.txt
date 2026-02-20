@@ -3,3 +3,15 @@
 - error handling untuk semua repo
 - race kondisi untuk update dan read stok sebelum order atau checkout
 - gambar pruduct belum di buat
+
+
+
+LOCKING
+
+1. untuk confirm checkout  / kurang stok setelah confirm 
+2. reverse stok jika tidak ada pembayaran
+
+
+web hook
+
+1.

@@ -19,9 +19,19 @@ type UserRepository interface {
 type UserUseCase interface {
 	Login(req *request.ReqLogin) (*response.ResUser, error)
 	Register(req *request.ReqCreateUser) (*response.ResUser, error)
+
+	GetUserAddressActive(userId int64) (*response.ResAddress, error)
+	GetAllAddress(userid int64) ([]*response.ResAddress, error)
+	CreateAddress(request *request.ReqCreateAddress, userID int64) (*response.ResAddress, error)
+	UpdateAddressByUserId(request *request.ReqUpdateAddress, addressID int64, userID int64) (*response.ResAddress, error)
 }
-type AuthHandler interface {
+type UserHandler interface {
 	Logout(ctx *fiber.Ctx) error
 	Login(ctx *fiber.Ctx) error
 	Register(ctx *fiber.Ctx) error
+
+	CreateAddress(ctx *fiber.Ctx) error
+	GetAllAddress(ctx *fiber.Ctx) error
+	UpdateAddressByUserId(ctx *fiber.Ctx) error
+	GetUserActiveAddress(ctx *fiber.Ctx) error
 }

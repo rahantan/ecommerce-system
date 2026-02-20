@@ -3,11 +3,23 @@ package main
 import (
 	"ecommerce-system/config"
 	"ecommerce-system/internal/delivery"
-	"ecommerce-system/internal/delivery/handler"
+	cartHandler "ecommerce-system/internal/delivery/handler/cart"
+	categoryHandler "ecommerce-system/internal/delivery/handler/category"
+	coHandler "ecommerce-system/internal/delivery/handler/checkout"
+	orderHandler "ecommerce-system/internal/delivery/handler/order"
+	productHandler "ecommerce-system/internal/delivery/handler/product"
+	userHandler "ecommerce-system/internal/delivery/handler/user"
+
 	"ecommerce-system/internal/delivery/middleware"
-	"ecommerce-system/internal/infra/midtrans"
-	"ecommerce-system/internal/repository"
-	"ecommerce-system/internal/usecase"
+	"ecommerce-system/internal/infra/external/midtrans"
+	"ecommerce-system/internal/infra/persistence"
+
+	cartUsecase "ecommerce-system/internal/usecase/cart"
+	categoryUsecase "ecommerce-system/internal/usecase/category"
+	coUsecase "ecommerce-system/internal/usecase/checkout"
+	orderUsecase "ecommerce-system/internal/usecase/order"
+	productUsecase "ecommerce-system/internal/usecase/product"
+	userUsecase "ecommerce-system/internal/usecase/user"
 	"fmt"
 	"reflect"
 	"strings"
@@ -34,40 +46,42 @@ func main() {
 		ErrorHandler: middleware.ErrorHandler,
 	})
 
-	userRepository := repository.NewUserRepository()
-	productRepository := repository.NewProductRepository()
-	categoryRepository := repository.NewCategoryRepository()
-	addressRepository := repository.NewAddressRepository()
-	cartRepository := repository.NewCartRepository()
-	orderRepo := repository.NewOrderRepository()
-	checkOutRepo := repository.NewCheckOutRepository()
-	paymentRepo := repository.NewPaymentRepository()
+	userRepository := persistence.NewUserRepository()
+	productRepository := persistence.NewProductRepository()
+	categoryRepository := persistence.NewCategoryRepository()
+	addressRepository := persistence.NewAddressRepository()
+	cartRepository := persistence.NewCartRepository()
+	orderRepo := persistence.NewOrderRepository()
+	checkOutRepo := persistence.NewCheckOutRepository()
+	paymentRepo := persistence.NewPaymentRepository()
 
-	userUseCase := usecase.NewUserUseCase(userRepository, connection)
-	addressUseCase := usecase.NewAddressUseCase(addressRepository, connection)
-	productUseCase := usecase.NewProductUseCase(productRepository, connection)
-	categoryUseCase := usecase.NewCategoryUseCase(categoryRepository, connection)
-	cartUseCase := usecase.NewCartUseCase(cartRepository, productUseCase, connection)
+	userUseCase := userUsecase.NewUserUseCase(userRepository, addressRepository, connection)
+
+	// addressUseCase := usecase.NewAddressUseCase(addressRepository, connection)
+	productUseCase := productUsecase.NewProductUseCase(productRepository, connection)
+	categoryUseCase := categoryUsecase.NewCategoryUseCase(categoryRepository, connection)
+	cartUseCase := cartUsecase.NewCartUseCase(cartRepository, productUseCase, connection)
 
 	midtransPayment := midtrans.NewMidtransGateWay(config.Client)
+	checkOutUseCase := coUsecase.NewCheckOutUseCase(checkOutRepo, orderRepo, cartRepository, productRepository, addressRepository, paymentRepo, midtransPayment, connection)
 
-	orderUseCase := usecase.NewOrderUseCase(checkOutRepo, orderRepo, cartRepository, productRepository, addressRepository, paymentRepo, midtransPayment, connection)
+	orderUseCase := orderUsecase.NewOrderUseCase(checkOutRepo, orderRepo, cartRepository, productRepository, addressRepository, paymentRepo, midtransPayment, connection)
 
-	authHandler := handler.NewAuthController(userUseCase, validate, config)
-	addressHandler := handler.NewAddressHandler(addressUseCase, validate)
-	productHandler := handler.NewProductHandler(productUseCase, validate)
-	categoryHandler := handler.NewCategoryHandler(categoryUseCase, validate)
-	cartHandler := handler.NewCartItemHandler(cartUseCase, validate)
-	orderHandler := handler.NewOrderHandler(orderUseCase, config.Midtrans, validate)
+	userHandler := userHandler.NewUserHandler(userUseCase, validate, config)
+	productHandler := productHandler.NewProductHandler(productUseCase, validate)
+	categoryHandler := categoryHandler.NewCategoryHandler(categoryUseCase, validate)
+	cartHandler := cartHandler.NewCartItemHandler(cartUseCase, validate)
+	orderHandler := orderHandler.NewOrderHandler(orderUseCase, config.Midtrans, validate)
+	checkOutHandler := coHandler.NewCheckOutHandler(checkOutUseCase, validate)
 
 	ctrl := &delivery.Handlers{
 		Config:          config,
-		AuthHandler:     authHandler,
+		UserHandler:     userHandler,
 		CategoryHandler: categoryHandler,
 		ProductHandler:  productHandler,
-		AddressHandler:  addressHandler,
 		CartHandler:     cartHandler,
 		OrderHandler:    orderHandler,
+		CheckOutHandler: checkOutHandler,
 	}
 	delivery.NewRoute(app, ctrl)
 	if err := app.Listen(fmt.Sprintf("%s:%s",
