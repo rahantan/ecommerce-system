@@ -99,13 +99,24 @@ func (orderHandler *OrderHandlerImpl) GetUserOrders(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	result, err := orderHandler.OrderUseCase.GetAllOrderByUserID(user.ID)
+	page, err := strconv.Atoi(ctx.Query("page", "1"))
+	if err != nil {
+		return pkg.ErrInvalidPage
+	}
+
+	limit, err := strconv.Atoi(ctx.Query("limit", "10"))
+	if err != nil {
+		return pkg.ErrinvalidLimit
+	}
+
+	result, meta, err := orderHandler.OrderUseCase.GetAllOrderByUserID(page, limit, user.ID)
 	if err != nil {
 		return err
 	}
 
 	return handler.SuccessResponse(ctx, fiber.StatusOK, "success get user orders", map[string]any{
 		"orders": result,
+		"meta":   meta,
 	})
 
 }

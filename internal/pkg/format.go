@@ -15,13 +15,17 @@ const (
 )
 
 const (
-	OderPending  = 1
-	OderProccess = 2
-	OderShip     = 3
-	OderReceive  = 4
-	OderCancel   = 6
+	OrderPending  = 1
+	OrderProccess = 2
+	OrderShip     = 3
+	OrderReceive  = 4
+	OrderCancel   = 6
 )
 
 const (
 	DateTimeLayout = "2006-01-02 15:04:05"
+)
+
+const (
+	ProductDir = "./uploads/products/"
 )

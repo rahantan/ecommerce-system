@@ -46,14 +46,6 @@ func (cartRepo *CartItemRepositoryImpl) GetUserCartByID(db *gorm.DB, cartID, use
 	return &cartItem, nil
 }
 
-// func (cartRepo *CartItemRepositoryImpl) GetCartItemByProductUser(db *gorm.DB, productID int64, userID int64) (*model.CartItemModel, error) {
-// 	var cartItem model.CartItemModel
-
-//		if err := db.Where("product_id=? AND user_id=?", productID, userID).Preload("Product").Take(&cartItem).Error; err != nil {
-//			return nil, cartRepo.checkErrMysql(err)
-//		}
-//		return &cartItem, nil
-//	}
 func (cartRepo *CartItemRepositoryImpl) GetAllUserCartItem(db *gorm.DB, userID int64) ([]*model.CartItemModel, error) {
 	var cartItems []*model.CartItemModel
 

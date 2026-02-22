@@ -11,7 +11,7 @@ import (
 
 type OrderRepository interface {
 	GetAllOrder(db *gorm.DB) ([]*model.OrderModel, error)
-	GetAllOrderByUserID(db *gorm.DB, userID int64) ([]*model.OrderModel, error)
+	GetAllOrderByUserID(db *gorm.DB, page, limit int, userID int64) ([]*model.OrderModel, int64, error)
 	GetOrderDetailsByID(db *gorm.DB, userID, orderID int64) (*model.OrderModel, error)
 	GetOrderByID(db *gorm.DB, orderID int64) (*model.OrderModel, error)
 	CreateOrder(db *gorm.DB, order *model.OrderModel) (*model.OrderModel, error)
@@ -31,7 +31,7 @@ type PaymentRepository interface {
 
 type OrderUseCase interface {
 	GetOrderDetails(userID, orderID int64) (*response.ResOrder, error)
-	GetAllOrderByUserID(userID int64) ([]*response.ResOrder, error)
+	GetAllOrderByUserID(page, limit int, userID int64) ([]*response.ResOrder, *response.ResPaginateStandard, error)
 	GetAllOrder() ([]*response.ResOrder, error)
 	// UpdateStatusOrder(orderID, statusOrder int64) error
 	ReceiveOrder(orderID, userID int64) error

@@ -1,17 +1,22 @@
-- pagination untuk data yang banyak dan di tampilkan
+- pagination untuk data yang banyak dan di tampilkan (done)
+* products (done)
+* orders (done)
+
 - update stok ketika sudah bayar (done)
-- error handling untuk semua repo
-- race kondisi untuk update dan read stok sebelum order atau checkout
-- gambar pruduct belum di buat
+- race kondisi untuk update dan read stok sebelum order atau checkout (done)
+- gambar pruduct belum di buat (done)
 
 
+NEXT PR 
+* ERROR HANDLING REPOSITORY
+- kemungkinan nanti di optimasi aja biar ga kebanyakan method err check di usecase
+- clean err handling di repo 
 
-LOCKING
-
-1. untuk confirm checkout  / kurang stok setelah confirm 
-2. reverse stok jika tidak ada pembayaran
+* LOGGING (go routine)
+* MIDTRANS DENGAN RABBITMQ (message broker)
 
 
-web hook
+IMPROVE LATE AJA
+* make db migration
+* connection pool
 
-1.

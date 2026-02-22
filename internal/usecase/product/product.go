@@ -6,6 +6,7 @@ import (
 	"ecommerce-system/internal/domain"
 	"ecommerce-system/internal/domain/model"
 	"ecommerce-system/internal/pkg"
+	"math"
 
 	"gorm.io/gorm"
 )
@@ -32,39 +33,59 @@ func (productUC *ProductUseCaseImpl) GetProductById(productID int64) (*response.
 	return productUC.resProduct(result), nil
 }
 
-func (productUC *ProductUseCaseImpl) GetAllProduct() ([]*response.ResProduct, error) {
+func (productUC *ProductUseCaseImpl) GetAllProduct(page, limit int) ([]*response.ResProduct, *response.ResPaginateStandard, error) {
 
-	result, err := productUC.ProductRepository.GetAllProduct(productUC.DB)
+	productsResulut, count, err := productUC.ProductRepository.GetAllProduct(productUC.DB, page, limit)
 	if err != nil {
-		return nil, pkg.MappingError(err)
+		return nil, nil, pkg.MappingError(err)
 	}
 
+	totalPage := math.Ceil(float64(count) / float64(limit))
 	products := []*response.ResProduct{}
-	for _, product := range result {
+	for _, product := range productsResulut {
 		products = append(products, productUC.resProduct(product))
 	}
 
-	return products, nil
+	paginate := &response.ResPaginateStandard{
+		Page:      page,
+		Limit:     limit,
+		TotalData: int(count),
+		TotalPage: int(totalPage),
+	}
+	return products, paginate, nil
 }
 
-func (productUC *ProductUseCaseImpl) CreateProduct(request *request.ReqCreateProduct) (*response.ResProduct, error) {
+func (productUC *ProductUseCaseImpl) CreateProduct(request *request.ReqCreateProduct, productImage *pkg.File) (*response.ResProduct, error) {
+
+	if err := pkg.UploadFile(productImage); err != nil {
+		return nil, pkg.MappingError(err)
+	}
 
 	result, err := productUC.ProductRepository.CreateProduct(productUC.DB, &model.ProductModel{
 		Name:       request.Name,
 		Price:      request.Price,
 		Stock:      request.Stock,
 		CategoryID: request.CategoryId,
+		Image:      productImage.Filename,
 	})
 
 	if err != nil {
+		if err := pkg.Delete(pkg.ProductDir); err != nil {
+			return nil, pkg.MappingError(err)
+		}
 		return nil, pkg.MappingError(err)
 	}
 
 	return productUC.resProduct(result), nil
 }
 
-func (productUC *ProductUseCaseImpl) UpdateProductById(request *request.ReqUpdateProduct, productID int64) (*response.ResProduct, error) {
-	if err := productUC.ProductRepository.CheckProductNotFoundForUpdate(productUC.DB, productID); err != nil {
+func (productUC *ProductUseCaseImpl) UpdateProductById(request *request.ReqUpdateProduct, productImage *pkg.File, productID int64) (*response.ResProduct, error) {
+	if err := pkg.UploadFile(productImage); err != nil {
+		return nil, pkg.MappingError(err)
+	}
+
+	oldProduct, err := productUC.ProductRepository.GetProductById(productUC.DB, productID)
+	if err != nil {
 		return nil, pkg.MappingError(err)
 	}
 
@@ -74,11 +95,36 @@ func (productUC *ProductUseCaseImpl) UpdateProductById(request *request.ReqUpdat
 		Price:      request.Price,
 		Stock:      request.Stock,
 		CategoryID: request.CategoryId,
+		Image:      productImage.Filename,
 	})
 
 	if err != nil {
+		if err := pkg.Delete(pkg.ProductDir + result.Image); err != nil {
+			return nil, pkg.MappingError(err)
+		}
+		return nil, pkg.MappingError(err)
+	}
+
+	if err := pkg.Delete(pkg.ProductDir + oldProduct.Image); err != nil {
 		return nil, pkg.MappingError(err)
 	}
 
 	return productUC.resProduct(result), nil
+}
+
+func (productUC *ProductUseCaseImpl) DeleteProductById(productID int64) error {
+	product, err := productUC.ProductRepository.GetProductById(productUC.DB, productID)
+	if err != nil {
+		return pkg.MappingError(err)
+	}
+
+	if err := productUC.ProductRepository.DeleteByID(productUC.DB, productID); err != nil {
+		return pkg.MappingError(err)
+	}
+
+	if err := pkg.Delete(pkg.ProductDir + product.Image); err != nil {
+		return err
+	}
+
+	return nil
 }

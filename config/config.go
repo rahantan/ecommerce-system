@@ -34,6 +34,7 @@ type Midtrans struct {
 	ExpireTime string
 	snap.Client
 }
+
 type Config struct {
 	Server
 	Database

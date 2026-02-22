@@ -12,6 +12,7 @@ func (product *ProductUseCaseImpl) resProduct(productLoad *model.ProductModel) *
 		Name:      productLoad.Name,
 		Price:     productLoad.Price,
 		Stock:     productLoad.Stock,
+		ImageUrl:  "localhost:8080/api/public/products/image?src=" + productLoad.Image,
 		CreatedAt: productLoad.CreatedAt.Format(pkg.DateTimeLayout),
 		UpdatedAt: productLoad.UpdatedAt.Format(pkg.DateTimeLayout),
 		ResCategory: &response.ResCategory{

@@ -94,13 +94,25 @@ func (productRepo *ProductRepositoryImpl) UpdateProductById(db *gorm.DB, product
 	return productRepo.GetProductById(db, product.ID)
 }
 
-func (productRepo *ProductRepositoryImpl) GetAllProduct(db *gorm.DB) ([]*model.ProductModel, error) {
-	var products []*model.ProductModel
+func (productRepo *ProductRepositoryImpl) GetAllProduct(db *gorm.DB, page, limit int) ([]*model.ProductModel, int64, error) {
+	var (
+		products []*model.ProductModel
+		count    int64
+	)
 
-	if err := db.Preload("Category").Find(&products).Error; err != nil {
-		return nil, err
+	query := db.Model(&model.ProductModel{})
+
+	// hitung total sesuai filter
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, err
 	}
-	return products, nil
+
+	// ambil data
+	if err := query.Scopes(Paginate(page, limit)).Preload("Category").Find(&products).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return products, count, nil
 }
 
 func (productRepo *ProductRepositoryImpl) UpdateProductStock(db *gorm.DB, products []model.ProductModel) error {
@@ -120,4 +132,15 @@ func (productRepo *ProductRepositoryImpl) UpdateProductStock(db *gorm.DB, produc
 	sql += "END WHERE id IN (?)"
 	return db.Exec(sql, args...).Error
 
+}
+
+func (productRepo *ProductRepositoryImpl) DeleteByID(db *gorm.DB, productID int64) error {
+	result := db.Where("id=?", productID).Delete(&model.ProductModel{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return model.ErrProductNotFound
+	}
+	return nil
 }

@@ -49,6 +49,7 @@ func (route *Handlers) Public(public fiber.Router) {
 	auth.Post("/login", route.UserHandler.Login)
 	auth.Post("/register", route.UserHandler.Register)
 
+	public.Get("/products/image/", route.GetProductImage)
 	public.Get("/products/:productId", route.ProductHandler.GetProductById)
 	public.Get("/products", route.ProductHandler.GetAllProduct)
 
@@ -57,6 +58,7 @@ func (route *Handlers) Public(public fiber.Router) {
 }
 
 func (route *Handlers) Admin(admin fiber.Router) {
+	admin.Delete("/products/:productId", route.ProductHandler.DeleteProductByID)
 	admin.Put("/products/:productId", route.ProductHandler.UpdateProductById)
 	admin.Post("/products", route.ProductHandler.CreateProduct)
 

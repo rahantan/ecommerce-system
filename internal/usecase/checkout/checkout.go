@@ -123,7 +123,7 @@ func (coUC *CheckOutUseCaseImpl) CheckOutConfirm(req *request.ReqConfirmCheckout
 		if errP := coUC.PaymentRepository.SavePayment(coUC.DB, &orderResult.Payment); errP != nil {
 			fmt.Println("errUPDATE: ", errP.Error())
 		}
-		if errSO := coUC.OrderRepository.UpdateStatusOrder(coUC.DB, orderResult.ID, pkg.OderCancel); errSO != nil {
+		if errSO := coUC.OrderRepository.UpdateStatusOrder(coUC.DB, orderResult.ID, pkg.OrderCancel); errSO != nil {
 			fmt.Println("errUPDATE: ", errSO.Error())
 		}
 		if errLC := coUC.CheckOutRepository.UpdateStatusLastCheckOut(coUC.DB, pkg.CheckOutCancel, userID); errLC != nil {

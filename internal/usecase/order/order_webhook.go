@@ -10,19 +10,18 @@ import (
 
 func (orderUC *OrderUseCaseImpl) UpdateStatusPayment(transactionOrderID int64, transactionStatus string) error {
 
-	fmt.Println("MASUK USECASE WEBHOOK")
 	order, err := orderUC.OrderRepository.GetOrderByID(orderUC.DB, transactionOrderID)
 	if err != nil {
 		return pkg.MappingError(err)
 	}
 
-	if order.StatusID > pkg.OderPending {
+	if order.StatusID > pkg.OrderPending {
 		return nil
 	}
 
 	switch transactionStatus {
 	case pkg.PaymentCancel, pkg.PaymentExpire:
-		order.StatusID = pkg.OderCancel
+		order.StatusID = pkg.OrderCancel
 
 		// update status order jadi cancel
 		// update status payment transaksinya sesuai param
@@ -34,7 +33,7 @@ func (orderUC *OrderUseCaseImpl) UpdateStatusPayment(transactionOrderID int64, t
 
 		// update status order jadi di proses
 		// update status payment transaksinya sesuai param
-		return orderUC.processOrder(order.ID, pkg.OderProccess, transactionStatus)
+		return orderUC.processOrder(order.ID, pkg.OrderProccess, transactionStatus)
 
 	default:
 		fmt.Println("STATUS TRANSAKSI WEBHOOK : ", transactionStatus)

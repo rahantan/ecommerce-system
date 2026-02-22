@@ -4,6 +4,7 @@ import (
 	"ecommerce-system/internal/delivery/dto/response"
 	"ecommerce-system/internal/domain"
 	"ecommerce-system/internal/pkg"
+	"math"
 
 	"gorm.io/gorm"
 )
@@ -48,20 +49,20 @@ func (orderUC *OrderUseCaseImpl) ShipOrder(orderID int64) error {
 	}
 	switch order.StatusID {
 
-	case pkg.OderPending:
+	case pkg.OrderPending:
 		return pkg.NewError(pkg.KindCancelled, "Order has not been paid yet; cannot update", nil)
 
-	case pkg.OderShip:
+	case pkg.OrderShip:
 		return pkg.NewError(pkg.KindInfo, "Order already shipped; no update performed", nil)
 
-	case pkg.OderReceive:
+	case pkg.OrderReceive:
 		return pkg.NewError(pkg.KindInfo, "Order already received; no update performed", nil)
 
-	case pkg.OderCancel:
+	case pkg.OrderCancel:
 		return pkg.NewError(pkg.KindCancelled, "Order has been cancelled; cannot update", nil)
 
 	default:
-		if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, pkg.OderShip); err != nil {
+		if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, pkg.OrderShip); err != nil {
 			return pkg.MappingError(err)
 		}
 	}
@@ -77,20 +78,20 @@ func (orderUC *OrderUseCaseImpl) ReceiveOrder(orderID, userID int64) error {
 	}
 	switch order.StatusID {
 
-	case pkg.OderPending:
+	case pkg.OrderPending:
 		return pkg.NewError(pkg.KindCancelled, "Order has not been paid yet; cannot update", nil)
 
-	case pkg.OderProccess:
+	case pkg.OrderProccess:
 		return pkg.NewError(pkg.KindCancelled, "Order is still being processed; cannot update", nil)
 
-	case pkg.OderReceive:
+	case pkg.OrderReceive:
 		return pkg.NewError(pkg.KindInfo, "Order already received; no update performed", nil)
 
-	case pkg.OderCancel:
+	case pkg.OrderCancel:
 		return pkg.NewError(pkg.KindCancelled, "Order has been cancelled; cannot update", nil)
 
 	default:
-		if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, pkg.OderReceive); err != nil {
+		if err := orderUC.OrderRepository.UpdateStatusOrder(orderUC.DB, orderID, pkg.OrderReceive); err != nil {
 			return pkg.MappingError(err)
 		}
 	}
@@ -127,10 +128,10 @@ func (orderUC *OrderUseCaseImpl) GetAllOrder() ([]*response.ResOrder, error) {
 	return orders, nil
 }
 
-func (orderUC *OrderUseCaseImpl) GetAllOrderByUserID(userID int64) ([]*response.ResOrder, error) {
-	resultOrder, err := orderUC.OrderRepository.GetAllOrderByUserID(orderUC.DB, userID)
+func (orderUC *OrderUseCaseImpl) GetAllOrderByUserID(page, limit int, userID int64) ([]*response.ResOrder, *response.ResPaginateStandard, error) {
+	resultOrder, count, err := orderUC.OrderRepository.GetAllOrderByUserID(orderUC.DB, page, limit, userID)
 	if err != nil {
-		return nil, pkg.MappingError(err)
+		return nil, nil, pkg.MappingError(err)
 	}
 
 	var orders []*response.ResOrder
@@ -138,6 +139,14 @@ func (orderUC *OrderUseCaseImpl) GetAllOrderByUserID(userID int64) ([]*response.
 	for _, order := range resultOrder {
 		orders = append(orders, orderUC.resOrder(order, nil))
 	}
+	totalPage := math.Ceil(float64(count) / float64(limit))
 
-	return orders, nil
+	paginate := &response.ResPaginateStandard{
+		Page:      page,
+		Limit:     limit,
+		TotalData: int(count),
+		TotalPage: int(totalPage),
+	}
+
+	return orders, paginate, nil
 }

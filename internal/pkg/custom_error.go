@@ -70,5 +70,9 @@ var (
 	ErrCustomInvalidCartId     = NewError(KindValidationError, "invalid cart id", nil)
 	ErrCustomInvalidOrderId    = NewError(KindValidationError, "invalid order id", nil)
 
+	ErrInvalidPage   = NewError(KindValidationError, "invalid page value", nil)
+	ErrinvalidLimit  = NewError(KindValidationError, "invalid limit value", nil)
+	ErrImageNotFound = NewError(KindNotFound, "image not found", nil)
+
 	ErrCustomLogin = NewError(KindUnauthorized, "invalid email or password", nil)
 )

@@ -3,6 +3,7 @@ package persistence
 import (
 	"ecommerce-system/internal/domain"
 	"ecommerce-system/internal/domain/model"
+	"ecommerce-system/internal/pkg"
 
 	"gorm.io/gorm"
 )
@@ -28,12 +29,22 @@ func (orderRepo *OrderRepositoryImpl) GetOrderByID(db *gorm.DB, orderID int64) (
 
 	return &order, nil
 }
-func (orderRepo *OrderRepositoryImpl) GetAllOrderByUserID(db *gorm.DB, userID int64) ([]*model.OrderModel, error) {
-	var orders []*model.OrderModel
-	if err := db.Where("status_id != ?", 6).Preload("OrderItem").Preload("OrderStatus").Find(&orders).Error; err != nil {
-		return nil, err
+func (orderRepo *OrderRepositoryImpl) GetAllOrderByUserID(db *gorm.DB, page, limit int, userID int64) ([]*model.OrderModel, int64, error) {
+	var (
+		orders []*model.OrderModel
+		count  int64
+	)
+	query := db.Model(&model.OrderModel{}).Where("status_id != ?", pkg.OrderCancel)
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, err
 	}
-	return orders, nil
+
+	if err := query.Scopes(Paginate(page, limit)).Preload("OrderItem").Preload("OrderStatus").Find(&orders).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return orders, count, nil
 }
 func (orderRepo *OrderRepositoryImpl) GetAllOrder(db *gorm.DB) ([]*model.OrderModel, error) {
 	var orders []*model.OrderModel
